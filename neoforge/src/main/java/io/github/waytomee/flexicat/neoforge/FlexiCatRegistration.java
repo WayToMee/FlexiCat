@@ -39,7 +39,7 @@ public final class FlexiCatRegistration {
 
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<FlexiCatBlockEntity>> FLEXICAT_BLOCK_ENTITY =
             BLOCK_ENTITIES.register(BLOCK_NAME, () -> BlockEntityType.Builder
-                    .of((pos, state) -> new FlexiCatBlockEntity(FlexiCatRegistration.FLEXICAT_BLOCK_ENTITY.get(), pos, state),
+                    .<FlexiCatBlockEntity>of((pos, state) -> new NeoForgeFlexiCatBlockEntity(FlexiCatRegistration.FLEXICAT_BLOCK_ENTITY.get(), pos, state),
                             FLEXICAT_BLOCK.get())
                     .build(null));
 

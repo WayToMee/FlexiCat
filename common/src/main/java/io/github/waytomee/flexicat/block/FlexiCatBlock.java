@@ -10,6 +10,9 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.MapColor;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.phys.shapes.VoxelShape;
 
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -18,9 +21,9 @@ import java.util.function.Supplier;
  * The FlexiCat block. It has no block-state properties: everything that makes one
  * placed block differ from another lives in its {@link FlexiCatBlockEntity}.
  *
- * <p>Stage 2 renders the block as a plain full cube from a normal JSON model. The
- * shape-driven mesh, collision and ray casting come in later stages, all reading
- * from the block entity.
+ * <p>The visual mesh is produced by the loader's client module from the block
+ * entity's shape (stage 4). Outline and collision currently use the axis-aligned
+ * bounds of the corners; exact per-face collision and ray casting are stage 5.
  */
 public class FlexiCatBlock extends BaseEntityBlock {
 
@@ -50,14 +53,29 @@ public class FlexiCatBlock extends BaseEntityBlock {
         return simpleCodec(properties -> new FlexiCatBlock(properties, entityType));
     }
 
+    /**
+     * The registered type decides the concrete block-entity class, so a loader
+     * module can register a subclass (e.g. with model-data support) without
+     * touching common code.
+     */
     @Override
     public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
-        return new FlexiCatBlockEntity(entityType.get(), pos, state);
+        return entityType.get().create(pos, state);
     }
 
     @Override
     protected RenderShape getRenderShape(BlockState state) {
         return RenderShape.MODEL;
+    }
+
+    @Override
+    protected VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+        return entityAt(level, pos).map(FlexiCatBlockEntity::boundsShape).orElse(Shapes.block());
+    }
+
+    @Override
+    protected VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+        return getShape(state, level, pos, context);
     }
 
     /** The block entity at {@code pos}, if it is a FlexiCat one. */

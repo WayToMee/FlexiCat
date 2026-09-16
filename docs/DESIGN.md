@@ -49,6 +49,30 @@ These are baked into the geometry core (`common/…/geometry`) and into saved da
   systems** fed by the same `CornerShape`. They are allowed to disagree slightly (e.g. collision
   may be simplified) but must all derive from the corner data.
 
+## Rendering (stage 4)
+
+- `geometry/ShapeMesh` (common, pure) turns a `CornerShape` into faces: four vertices in block
+  units plus UVs in 0–16 model units, in the face's fixed corner order (contract 4), so the
+  renderer's quad split reproduces contract 5. Degenerate faces are skipped.
+- Texture: the vanilla full-cube projection of each face, evaluated at the moved corner
+  (`DOWN u=x,v=16-z · UP u=x,v=z · NORTH u=16-x,v=16-y · SOUTH u=x,v=16-y · WEST u=z,v=16-y ·
+  EAST u=16-z,v=16-y`). A moved corner slides the texture with it; nothing is stretched over the
+  whole face. Once material filling exists the same UVs sample the material's sprite.
+- Culling: a face that is still the undeformed cube face (`FaceQuad.isFullCubeFace`) is emitted
+  as a culled face for its direction, so vanilla drops it against opaque neighbours. Every other
+  face is emitted unculled.
+- Shading: each face carries a "light face" — the cube direction closest to its actual normal
+  (ties favour Y) — used for directional shading and light sampling. Smooth lighting (AO) is
+  disabled for non-cube shapes; it samples the cell corners and looks wrong on slopes.
+- NeoForge wiring: `NeoForgeFlexiCatBlockEntity` publishes the shape as `ModelData` and requests a
+  model-data refresh whenever a synced shape differs; `FlexiCatBakedModel` wraps the JSON
+  placeholder model (kept for texture, particle sprite and item rendering) and builds quads at
+  chunk-mesh time. The common block entity re-meshes the chunk section on sync
+  (`onShapeSyncedOnClient`). Fabric will need the same three pieces with its own APIs.
+- Outline and collision (`FlexiCatBlock.getShape/getCollisionShape`) are the bounding box of the
+  eight corners, padded to 1/16 when flat so a plate stays targetable. Per-face collision and ray
+  casting are stage 5.
+
 ## Candidates for v1, not yet decided
 
 - **Group movement**: move several selected corners with one keystroke. The geometry core already

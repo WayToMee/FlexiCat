@@ -9,10 +9,10 @@ Small stages, each reviewable on its own.
       placeholder full-cube rendering. Loads on a dev server; corner tool shows the shape summary.
 - [x] **3.** Tool: right-click reveals corner handles; aim-select; server-validated move packets.
       Arrow keys / Page Up / Page Down move the selected corner (rebindable); no client prediction.
-- [ ] **4.** Rendering: mesh built from the corner positions (planar-safe triangulation), material
-      texture projection.
-- [ ] **5.** Collision + ray casting derived from the shape; culling of full faces against
-      neighbours.
+- [x] **4.** Rendering: mesh built from the corner positions (planar-safe triangulation), vanilla
+      cube texture projection per face, culling of untouched faces, directional shading by real
+      normal. Outline/collision use the corners' bounding box for now.
+- [ ] **5.** Collision + ray casting derived from the actual faces (not just the bounding box).
 - [ ] **6.** Material filling (copycat behaviour).
 - [ ] **7.** Polish: group movement, shape copy, sounds/particles, config, localisation.
 - [ ] **F.** Fabric module.
