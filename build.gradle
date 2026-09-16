@@ -1,0 +1,9 @@
+plugins {
+    // https://projects.neoforged.net/neoforged/moddevgradle
+    id 'net.neoforged.moddev' version "${moddev_version}" apply false
+}
+
+subprojects {
+    version = rootProject.version
+    group = rootProject.group
+}
