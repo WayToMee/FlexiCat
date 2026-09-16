@@ -1,0 +1,8 @@
+{
+  "block.flexicat.flexicat_block": "Блок FlexiCat",
+  "item.flexicat.corner_tool": "Угловой инструмент",
+  "message.flexicat.shape_cube": "Форма: полный куб (углы не сдвинуты)",
+  "message.flexicat.shape_moved": "Форма: сдвинуто углов — %s из 8",
+  "message.flexicat.shape_reset": "Форма сброшена до куба",
+  "message.flexicat.shape_already_cube": "Уже куб"
+}

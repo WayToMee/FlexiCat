@@ -8,5 +8,6 @@ import net.neoforged.fml.common.Mod;
 public final class FlexiCatNeoForge {
     public FlexiCatNeoForge(IEventBus modBus) {
         FlexiCat.LOGGER.info("{} is loading on NeoForge", FlexiCat.MOD_NAME);
+        FlexiCatRegistration.register(modBus);
     }
 }

@@ -1,0 +1,8 @@
+{
+  "block.flexicat.flexicat_block": "FlexiCat Block",
+  "item.flexicat.corner_tool": "Corner Tool",
+  "message.flexicat.shape_cube": "Shape: full cube (no corners moved)",
+  "message.flexicat.shape_moved": "Shape: %s of 8 corners moved",
+  "message.flexicat.shape_reset": "Shape reset to a cube",
+  "message.flexicat.shape_already_cube": "Already a cube"
+}

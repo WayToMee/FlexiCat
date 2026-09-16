@@ -1,0 +1,5 @@
+{
+  "variants": {
+    "": { "model": "flexicat:block/flexicat_block" }
+  }
+}

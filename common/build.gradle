@@ -15,6 +15,9 @@ neoForge {
         minecraftVersion = parchment_minecraft
         mappingsVersion = parchment_version
     }
+    // Unit tests may use plain-library parts of Minecraft (NBT, codecs, network codecs)
+    // without a game bootstrap.
+    addModdingDependenciesTo(sourceSets.test)
 }
 
 dependencies {

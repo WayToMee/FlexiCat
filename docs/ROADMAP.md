@@ -5,8 +5,8 @@ Small stages, each reviewable on its own.
 - [x] **0.** Repository scaffold: Gradle multi-module (common + neoforge), builds a loadable jar.
 - [x] **1.** Geometry core: `CornerShape`, corner/face model, clamped moves, group moves,
       planarity/degeneracy checks, byte serialisation, unit tests.
-- [ ] **2.** Block + block entity on NeoForge: registration, shape codec/NBT, client sync,
-      placeholder full-cube rendering. Loads in a dev client.
+- [x] **2.** Block + block entity on NeoForge: registration, shape codec/NBT, client sync,
+      placeholder full-cube rendering. Loads on a dev server; corner tool shows the shape summary.
 - [ ] **3.** Tool: right-click reveals corner handles; aim-select; server-validated move packets.
 - [ ] **4.** Rendering: mesh built from the corner positions (planar-safe triangulation), material
       texture projection.
