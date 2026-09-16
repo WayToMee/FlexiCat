@@ -2,8 +2,8 @@ package io.github.waytomee.flexicat.item;
 
 import io.github.waytomee.flexicat.block.FlexiCatBlock;
 import io.github.waytomee.flexicat.block.FlexiCatBlockEntity;
-import io.github.waytomee.flexicat.geometry.Corner;
 import io.github.waytomee.flexicat.geometry.CornerShape;
+import io.github.waytomee.flexicat.platform.LoaderHooks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionResult;
@@ -15,15 +15,14 @@ import net.minecraft.world.level.Level;
 import java.util.Optional;
 
 /**
- * The tool that will edit corner points.
+ * The tool that edits corner points.
  *
- * <p>Stage 2 placeholder behaviour, so the block entity and its sync can be
- * exercised in a dev world before the real interaction exists:
  * <ul>
- *   <li>right-click a FlexiCat block: show how many corners are moved (action bar);</li>
- *   <li>sneak + right-click: reset the block to a cube (server-side, synced).</li>
+ *   <li>Right-click a FlexiCat block: toggle corner editing for that block on the
+ *       client (handles appear; see {@code CornerEditClient}). The server does
+ *       nothing for a plain click — moves arrive later as separate intents.</li>
+ *   <li>Sneak + right-click: reset the block to a cube (server side, synced).</li>
  * </ul>
- * Stage 3 replaces this with handle selection and move intents.
  */
 public class CornerToolItem extends Item {
 
@@ -39,31 +38,25 @@ public class CornerToolItem extends Item {
         if (target.isEmpty()) {
             return InteractionResult.PASS;
         }
+        Player player = context.getPlayer();
+        boolean reset = player != null && player.isSecondaryUseActive();
         if (level.isClientSide()) {
+            if (!reset) {
+                LoaderHooks.cornerToolUsedOnClient(pos);
+            }
             return InteractionResult.SUCCESS;
         }
-        FlexiCatBlockEntity be = target.get();
-        Player player = context.getPlayer();
-        if (player != null && player.isSecondaryUseActive()) {
-            boolean changed = be.setShape(CornerShape.cube());
+        if (reset) {
+            boolean changed = target.get().setShape(CornerShape.cube());
             player.displayClientMessage(Component.translatable(changed
                     ? "message.flexicat.shape_reset" : "message.flexicat.shape_already_cube"), true);
-        } else if (player != null) {
-            player.displayClientMessage(describe(be.shape()), true);
         }
         return InteractionResult.CONSUME;
     }
 
-    static Component describe(CornerShape shape) {
-        if (shape.isCube()) {
-            return Component.translatable("message.flexicat.shape_cube");
-        }
-        int moved = 0;
-        for (Corner corner : Corner.values()) {
-            if (!shape.offset(corner).isZero()) {
-                moved++;
-            }
-        }
-        return Component.translatable("message.flexicat.shape_moved", moved);
+    /** {@code true} if the player holds a corner tool in either hand. */
+    public static boolean isHeldBy(Player player) {
+        return player.getMainHandItem().getItem() instanceof CornerToolItem
+                || player.getOffhandItem().getItem() instanceof CornerToolItem;
     }
 }

@@ -30,3 +30,5 @@ replay_pid*
 # OS
 .DS_Store
 Thumbs.db
+# Log4j output from unit tests that touch Minecraft classes
+**/logs/

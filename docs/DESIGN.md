@@ -35,8 +35,16 @@ These are baked into the geometry core (`common/…/geometry`) and into saved da
 - One block type, fillable with a material (like a copycat).
 - One tool. Right-click a block → corners shown as handles. Aim at a handle to select it.
   Move the selected handle along an axis in ±1 grid steps.
-- Server-authoritative shape: the client sends *intents* ("move corner 3 on Y by -1"), the server
-  validates, applies and syncs the block entity.
+- Server-authoritative shape: the client sends *intents* ("move corner 3 on Y by -1", payload
+  `flexicat:corner_move`), the server validates (tool held, may build, block in reach and loaded,
+  really a FlexiCat block, single grid step), applies the clamped move and syncs the block entity.
+  The client does not predict; handles follow the synced shape.
+- Selection is "sticky aim": the handle under the crosshair becomes the selected corner and stays
+  selected until another handle is aimed at, so a corner pushed away from the crosshair keeps
+  receiving moves. Right-clicking the block again (or letting go of the tool / walking out of
+  reach) ends editing.
+- Handles are picked against the *current* corner positions (`HandlePicker`), not the placeholder
+  cube model, so they stay correct once the real mesh renders.
 - Visual mesh, collision shape, ray-cast target, culling and neighbour behaviour are **separate
   systems** fed by the same `CornerShape`. They are allowed to disagree slightly (e.g. collision
   may be simplified) but must all derive from the corner data.
@@ -46,8 +54,10 @@ These are baked into the geometry core (`common/…/geometry`) and into saved da
 - **Group movement**: move several selected corners with one keystroke. The geometry core already
   supports it (`moveGroup`, clamped as a whole so the group is not distorted).
 - **Copy shape without replacing material**.
-- Axis switching key and whether the move keys are WASD or arrows (WASD conflicts with walking;
-  the user's message listed both as examples, not as a final layout).
+- Move keys. Stage 3 ships **arrow keys** (up/down = world Y, left/right = relative to the
+  player's facing) plus **Page Up / Page Down** (away / towards), all rebindable in the vanilla
+  controls screen under "FlexiCat". WASD was avoided because it conflicts with walking around
+  the block while editing. Whether this stays, or an axis-switch key is added, is open.
 
 ## Explicitly *not* in v1
 

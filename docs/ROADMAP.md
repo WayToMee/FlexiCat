@@ -7,7 +7,8 @@ Small stages, each reviewable on its own.
       planarity/degeneracy checks, byte serialisation, unit tests.
 - [x] **2.** Block + block entity on NeoForge: registration, shape codec/NBT, client sync,
       placeholder full-cube rendering. Loads on a dev server; corner tool shows the shape summary.
-- [ ] **3.** Tool: right-click reveals corner handles; aim-select; server-validated move packets.
+- [x] **3.** Tool: right-click reveals corner handles; aim-select; server-validated move packets.
+      Arrow keys / Page Up / Page Down move the selected corner (rebindable); no client prediction.
 - [ ] **4.** Rendering: mesh built from the corner positions (planar-safe triangulation), material
       texture projection.
 - [ ] **5.** Collision + ray casting derived from the shape; culling of full faces against
