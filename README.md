@@ -11,8 +11,9 @@ shape is whatever the corners say it is.
 
 ## Status
 
-Early development. Nothing is playable yet; see [`docs/DESIGN.md`](docs/DESIGN.md) for the plan
-and [`docs/ROADMAP.md`](docs/ROADMAP.md) for what comes next.
+Early development, playable on NeoForge 1.21.1: editing, rendering, collision, material filling,
+group moves, shape copy/paste and a client config are in. See [`docs/DESIGN.md`](docs/DESIGN.md)
+for how it works and [`docs/ROADMAP.md`](docs/ROADMAP.md) for what comes next.
 
 | Target | Status |
 |--------|--------|

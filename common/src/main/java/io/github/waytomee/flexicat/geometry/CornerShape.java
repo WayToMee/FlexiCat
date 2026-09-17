@@ -96,6 +96,17 @@ public final class CornerShape {
         return b;
     }
 
+    /** How many corners are away from their rest position (0 for a cube, up to 8). */
+    public int movedCorners() {
+        int n = 0;
+        for (Corner c : Corner.values()) {
+            if (!offset(c).isZero()) {
+                n++;
+            }
+        }
+        return n;
+    }
+
     /** {@code true} if every corner sits on the same coordinate along {@code axis} — the shape has no volume. */
     public boolean isFlat() {
         int[] b = bounds();

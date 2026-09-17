@@ -1,6 +1,9 @@
 {
   "block.flexicat.flexicat_block": "FlexiCat Block",
   "item.flexicat.corner_tool": "Corner Tool",
+  "item.flexicat.corner_tool.empty": "No shape copied",
+  "item.flexicat.corner_tool.holds_cube": "Holds a plain cube",
+  "item.flexicat.corner_tool.holds": "Holds a shape (%s corners moved)",
 
   "key.categories.flexicat": "FlexiCat",
   "key.flexicat.move_up": "Move corner up",
@@ -9,6 +12,8 @@
   "key.flexicat.move_right": "Move corner right",
   "key.flexicat.move_away": "Move corner away from you",
   "key.flexicat.move_towards": "Move corner towards you",
+  "key.flexicat.copy_shape": "Copy shape to tool",
+  "key.flexicat.paste_shape": "Paste shape from tool",
 
   "corner.flexicat.down_west_north": "Bottom north-west corner",
   "corner.flexicat.down_east_north": "Bottom north-east corner",
@@ -19,8 +24,24 @@
   "corner.flexicat.up_west_south": "Top south-west corner",
   "corner.flexicat.up_east_south": "Top south-east corner",
 
-  "message.flexicat.hud.aim": "FlexiCat: right-click a corner point to select it",
-  "message.flexicat.hud.selected": "%s at (%s, %s, %s) · %s/%s up/down · %s/%s left/right · %s/%s away/towards · right-click another point to switch",
+  "message.flexicat.hud.aim": "FlexiCat: right-click a corner point to select it · Ctrl + right-click adds it to a group",
+  "message.flexicat.hud.corner": "%s at (%s, %s, %s)",
+  "message.flexicat.hud.group": "%s corners selected",
+  "message.flexicat.hud.selected": "%s · %s/%s up/down · %s/%s left/right · %s/%s away/towards",
   "message.flexicat.shape_reset": "Shape reset to a cube",
-  "message.flexicat.shape_already_cube": "Already a cube"
+  "message.flexicat.shape_already_cube": "Already a cube",
+  "message.flexicat.shape_copied": "Shape copied to the tool",
+  "message.flexicat.shape_pasted": "Shape pasted",
+  "message.flexicat.shape_same": "The block already has that shape",
+  "message.flexicat.tool_empty": "The tool holds no shape yet — copy one first",
+
+  "flexicat.configuration.title": "FlexiCat",
+  "flexicat.configuration.section.flexicat.client.toml": "Client settings",
+  "flexicat.configuration.section.flexicat.client.toml.title": "FlexiCat client settings",
+  "flexicat.configuration.editing": "Editing",
+  "flexicat.configuration.editing.repeatDelayTicks": "Repeat delay (ticks)",
+  "flexicat.configuration.editing.repeatIntervalTicks": "Repeat interval (ticks)",
+  "flexicat.configuration.editing.handleSize": "Corner handle size",
+  "flexicat.configuration.editing.moveSounds": "Editing sounds",
+  "flexicat.configuration.editing.showHud": "Show editing hint"
 }

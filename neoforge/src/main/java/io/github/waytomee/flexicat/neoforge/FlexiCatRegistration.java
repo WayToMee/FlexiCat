@@ -3,7 +3,10 @@ package io.github.waytomee.flexicat.neoforge;
 import io.github.waytomee.flexicat.FlexiCat;
 import io.github.waytomee.flexicat.block.FlexiCatBlock;
 import io.github.waytomee.flexicat.block.FlexiCatBlockEntity;
+import io.github.waytomee.flexicat.geometry.CornerShape;
 import io.github.waytomee.flexicat.item.CornerToolItem;
+import io.github.waytomee.flexicat.item.FlexiCatComponents;
+import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTabs;
@@ -30,6 +33,12 @@ public final class FlexiCatRegistration {
     public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(FlexiCat.MOD_ID);
     public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES =
             DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, FlexiCat.MOD_ID);
+    public static final DeferredRegister.DataComponents DATA_COMPONENTS =
+            DeferredRegister.createDataComponents(Registries.DATA_COMPONENT_TYPE, FlexiCat.MOD_ID);
+
+    /** The corner tool's copied shape (stage 7); the type object itself lives in common. */
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<CornerShape>> SHAPE_COMPONENT =
+            DATA_COMPONENTS.register(FlexiCatComponents.SHAPE_NAME, () -> FlexiCatComponents.SHAPE);
 
     public static final DeferredBlock<FlexiCatBlock> FLEXICAT_BLOCK = BLOCKS.registerBlock(BLOCK_NAME,
             properties -> new FlexiCatBlock(properties, () -> FlexiCatRegistration.FLEXICAT_BLOCK_ENTITY.get()),
@@ -53,6 +62,7 @@ public final class FlexiCatRegistration {
         BLOCKS.register(modBus);
         ITEMS.register(modBus);
         BLOCK_ENTITIES.register(modBus);
+        DATA_COMPONENTS.register(modBus);
         modBus.addListener(FlexiCatRegistration::addCreativeTabEntries);
     }
 

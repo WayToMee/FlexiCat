@@ -2,7 +2,6 @@ package io.github.waytomee.flexicat.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import io.github.waytomee.flexicat.edit.HandlePicker;
 import io.github.waytomee.flexicat.geometry.Axis;
 import io.github.waytomee.flexicat.geometry.Corner;
 import io.github.waytomee.flexicat.geometry.CornerShape;
@@ -34,11 +33,11 @@ public final class CornerHandleRenderer {
     }
 
     /**
-     * @param selected the corner that receives moves (yellow), if any
-     * @param hovered  the corner under the crosshair that a right-click would select (white), if any
+     * @param selectedMask the corners that receive moves (yellow), as a corner mask
+     * @param hovered      the corner under the crosshair that a right-click would select (white), if any
      */
     public static void render(PoseStack poseStack, MultiBufferSource.BufferSource buffers, Vec3 camera,
-                              BlockPos pos, CornerShape shape, @Nullable Corner selected, @Nullable Corner hovered) {
+                              BlockPos pos, CornerShape shape, int selectedMask, @Nullable Corner hovered) {
         poseStack.pushPose();
         poseStack.translate(pos.getX() - camera.x, pos.getY() - camera.y, pos.getZ() - camera.z);
         PoseStack.Pose pose = poseStack.last();
@@ -47,13 +46,14 @@ public final class CornerHandleRenderer {
         edges(pose, lines, shape, EDGE_COLOR);
 
         // Handles: boxes centred on the corner positions.
-        double h = HandlePicker.DEFAULT_HALF_SIZE;
+        double h = FlexiCatClientConfig.handleHalfSizeBlocks();
         for (Corner corner : Corner.values()) {
             Vec3i16 p = shape.position(corner);
             double x = p.xBlocks();
             double y = p.yBlocks();
             double z = p.zBlocks();
-            int color = corner == selected ? SELECTED_COLOR : corner == hovered ? HOVERED_COLOR : HANDLE_COLOR;
+            boolean selected = (selectedMask & corner.bit()) != 0;
+            int color = selected ? SELECTED_COLOR : corner == hovered ? HOVERED_COLOR : HANDLE_COLOR;
             LevelRenderer.renderLineBox(poseStack, lines,
                     x - h, y - h, z - h, x + h, y + h, z + h,
                     red(color), green(color), blue(color), alpha(color));

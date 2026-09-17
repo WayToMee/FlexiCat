@@ -11,7 +11,10 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.neoforge.client.gui.ConfigurationScreen;
+import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import io.github.waytomee.flexicat.neoforge.FlexiCatRegistration;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.block.BlockModelShaper;
@@ -37,9 +40,11 @@ import net.neoforged.neoforge.network.PacketDistributor;
 @Mod(value = FlexiCat.MOD_ID, dist = Dist.CLIENT)
 public final class FlexiCatNeoForgeClient {
 
-    public FlexiCatNeoForgeClient(IEventBus modBus) {
+    public FlexiCatNeoForgeClient(IEventBus modBus, ModContainer container) {
         LoaderHooks.installSendToServer(payload -> PacketDistributor.sendToServer(payload));
         LoaderHooks.installCornerToolUsedOnClient(CornerEditClient::onToolUsed);
+        FlexiCatNeoForgeClientConfig.register(container);
+        container.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
 
         modBus.addListener(FlexiCatNeoForgeClient::onRegisterKeyMappings);
         modBus.addListener(FlexiCatNeoForgeClient::onModifyBakingResult);

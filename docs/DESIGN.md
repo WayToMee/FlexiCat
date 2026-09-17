@@ -43,9 +43,10 @@ These are baked into the geometry core (`common/…/geometry`) and into saved da
 - One block type, fillable with a material (like a copycat).
 - One tool. Right-click a block → corners shown as handles. Right-click a handle to select it.
   Move the selected handle along an axis in ±1 grid steps.
-- Server-authoritative shape: the client sends *intents* ("move corner 3 on Y by -1", payload
-  `flexicat:corner_move`), the server validates (tool held, may build, block in reach and loaded,
-  really a FlexiCat block, single grid step), applies the clamped move and syncs the block entity.
+- Server-authoritative shape: the client sends *intents* ("move corners {3} on Y by -1", payload
+  `flexicat:corner_move` with a corner mask), the server validates (tool held, may build, block
+  in reach and loaded, really a FlexiCat block, single grid step), applies the clamped move and
+  syncs the block entity.
   The client does not predict; handles follow the synced shape.
 - Selection is explicit: the handle under the crosshair is only *hovered* (highlighted white);
   a right-click with the tool on it makes it the selected corner (yellow), and it stays selected
@@ -165,17 +166,49 @@ after which it looks like that block — the copycat idea.
   colouring keeps working. Materials that only look right with a non-cube model or custom
   renderer are outside the acceptance rule above.
 - **Sounds.** Place/remove play the material's own place/break sounds. The block's mining sound
-  stays FlexiCat's for now (polish stage).
+  stays FlexiCat's (a `SoundType` is fixed per block at registration; per-material mining sounds
+  would need a loader hook).
 
-## Candidates for v1, not yet decided
+## Polish (stage 7)
 
-- **Group movement**: move several selected corners with one keystroke. The geometry core already
-  supports it (`moveGroup`, clamped as a whole so the group is not distorted).
-- **Copy shape without replacing material**. (Materials exist since stage 6.)
+- **Group selection.** The selection is a set of corners (`edit/CornerSelection`, an 8-bit
+  corner mask). Right-click on a handle selects it alone; **Ctrl (or Shift) + right-click**
+  toggles it in or out of the group. Move keys move the whole group as one
+  (`CornerShape.moveGroup`: the step is reduced so no member leaves the cell, then applied to
+  all, so the group keeps its shape). Selected handles are yellow, the HUD shows the corner name
+  or "N corners selected". Lowering a whole top face is therefore four clicks and one key.
+- **Wire format.** `flexicat:corner_move` carries the corner **mask** instead of one index
+  (protocol version `2`); the server validates `1 ≤ mask ≤ 255` and applies the clamped group
+  move. A single corner is a mask with one bit, so nothing else changed.
+- **Shape copy / paste.** Two more rebindable keys, **Home** (copy) and **End** (paste). They act
+  on the block being edited, or on the FlexiCat block under the crosshair when not editing, and
+  only while the tool is held. The copied shape is stored on the tool item in the data component
+  `flexicat:shape` (`item/FlexiCatComponents`, 24-byte form via `CornerShapeCodecs.CODEC`), so it
+  survives relogging and is shown in the tool's tooltip. Paste replaces only the shape — the
+  material stays. Both are intents (`flexicat:tool_action`): the server reads the shape from the
+  block or from the tool in the player's hand and never trusts shape data from the client.
+- **Feedback.** Whole-shape changes (paste, sneak-reset) play the material's place sound and a
+  puff of that material's block particles at the shape's centre (`edit/ShapeFeedback`, server
+  side). Single corner moves and handle clicks only play a quiet client-side UI click (rising
+  pitch for "up", lower for "down"), so a held key does not rattle. Copy plays the item pickup
+  sound.
+- **Client config** (`client/FlexiCatClientConfig` in common exposes suppliers; the NeoForge
+  module binds them to a `ModConfigSpec`, file `config/flexicat-client.toml`, editable from
+  Mods → FlexiCat → Config): key repeat delay and interval (ticks), handle size (1/16 units),
+  editing sounds on/off, HUD hint on/off. Values are read live. Nothing gameplay-relevant is
+  configurable on the client; there is no server config yet.
+- **Localisation.** English and Russian for every key binding, corner name, HUD message,
+  tooltip and config entry (`assets/flexicat/lang/{en_us,ru_ru}.json`).
+
+## Candidates for later, not yet decided
+
 - Move keys. Stage 3 ships **arrow keys** (up/down = world Y, left/right = relative to the
-  player's facing) plus **Page Up / Page Down** (away / towards), all rebindable in the vanilla
-  controls screen under "FlexiCat". WASD was avoided because it conflicts with walking around
-  the block while editing. Whether this stays, or an axis-switch key is added, is open.
+  player's facing) plus **Page Up / Page Down** (away / towards), stage 7 adds **Home / End**
+  (copy / paste), all rebindable in the vanilla controls screen under "FlexiCat". WASD was
+  avoided because it conflicts with walking around the block while editing. Whether an
+  axis-switch key is added is open.
+- A one-time explicit "snap corners to the neighbouring block's corners".
+- A server-side config (e.g. who may use the tool). Not needed for v1.
 
 ## Explicitly *not* in v1
 

@@ -7,12 +7,15 @@ import org.lwjgl.glfw.GLFW;
 import java.util.List;
 
 /**
- * Key mappings for moving the selected corner. Defaults: arrow keys for
- * up/down/left/right and Page Up / Page Down for away/towards. Left, right, away
- * and towards are relative to the player's horizontal facing; up/down are world Y.
+ * Key mappings for the corner tool. Defaults: arrow keys for up/down/left/right and
+ * Page Up / Page Down for away/towards (left, right, away and towards are relative to
+ * the player's horizontal facing; up/down are world Y); Home copies the aimed block's
+ * shape onto the tool, End pastes it.
  *
  * <p>WASD was deliberately not used: it would fight with walking around the block
- * while editing. Everything is rebindable in the controls screen.
+ * while editing. Copy/paste avoid C/V for the same reason (chat, sneak rebinds) and
+ * because the tool only reacts to them while it is held, so they never clash with
+ * anything else. Everything is rebindable in the controls screen.
  */
 public final class FlexiCatKeys {
 
@@ -24,13 +27,23 @@ public final class FlexiCatKeys {
     public static final KeyMapping MOVE_RIGHT = key("move_right", GLFW.GLFW_KEY_RIGHT);
     public static final KeyMapping MOVE_AWAY = key("move_away", GLFW.GLFW_KEY_PAGE_UP);
     public static final KeyMapping MOVE_TOWARDS = key("move_towards", GLFW.GLFW_KEY_PAGE_DOWN);
+    public static final KeyMapping COPY_SHAPE = key("copy_shape", GLFW.GLFW_KEY_HOME);
+    public static final KeyMapping PASTE_SHAPE = key("paste_shape", GLFW.GLFW_KEY_END);
 
-    private static final List<KeyMapping> ALL = List.of(
+    private static final List<KeyMapping> MOVES = List.of(
             MOVE_UP, MOVE_DOWN, MOVE_LEFT, MOVE_RIGHT, MOVE_AWAY, MOVE_TOWARDS);
+    private static final List<KeyMapping> ALL = List.of(
+            MOVE_UP, MOVE_DOWN, MOVE_LEFT, MOVE_RIGHT, MOVE_AWAY, MOVE_TOWARDS, COPY_SHAPE, PASTE_SHAPE);
 
     private FlexiCatKeys() {
     }
 
+    /** The six corner-move keys, in a fixed order (repeater slots). */
+    public static List<KeyMapping> moves() {
+        return MOVES;
+    }
+
+    /** Every key mapping to register. */
     public static List<KeyMapping> all() {
         return ALL;
     }

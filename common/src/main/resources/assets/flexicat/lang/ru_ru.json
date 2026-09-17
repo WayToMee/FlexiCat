@@ -1,6 +1,9 @@
 {
   "block.flexicat.flexicat_block": "Блок FlexiCat",
   "item.flexicat.corner_tool": "Угловой инструмент",
+  "item.flexicat.corner_tool.empty": "Форма не скопирована",
+  "item.flexicat.corner_tool.holds_cube": "Хранит обычный куб",
+  "item.flexicat.corner_tool.holds": "Хранит форму (сдвинуто углов: %s)",
 
   "key.categories.flexicat": "FlexiCat",
   "key.flexicat.move_up": "Сдвинуть угол вверх",
@@ -9,6 +12,8 @@
   "key.flexicat.move_right": "Сдвинуть угол вправо",
   "key.flexicat.move_away": "Сдвинуть угол от себя",
   "key.flexicat.move_towards": "Сдвинуть угол к себе",
+  "key.flexicat.copy_shape": "Скопировать форму в инструмент",
+  "key.flexicat.paste_shape": "Вставить форму из инструмента",
 
   "corner.flexicat.down_west_north": "Нижний северо-западный угол",
   "corner.flexicat.down_east_north": "Нижний северо-восточный угол",
@@ -19,8 +24,24 @@
   "corner.flexicat.up_west_south": "Верхний юго-западный угол",
   "corner.flexicat.up_east_south": "Верхний юго-восточный угол",
 
-  "message.flexicat.hud.aim": "FlexiCat: нажмите ПКМ по угловой точке, чтобы выбрать её",
-  "message.flexicat.hud.selected": "%s в (%s, %s, %s) · %s/%s вверх/вниз · %s/%s влево/вправо · %s/%s от себя/к себе · ПКМ по другой точке — переключить",
+  "message.flexicat.hud.aim": "FlexiCat: ПКМ по угловой точке — выбрать · Ctrl + ПКМ — добавить в группу",
+  "message.flexicat.hud.corner": "%s в (%s, %s, %s)",
+  "message.flexicat.hud.group": "Выбрано углов: %s",
+  "message.flexicat.hud.selected": "%s · %s/%s вверх/вниз · %s/%s влево/вправо · %s/%s от себя/к себе",
   "message.flexicat.shape_reset": "Форма сброшена до куба",
-  "message.flexicat.shape_already_cube": "Уже куб"
+  "message.flexicat.shape_already_cube": "Уже куб",
+  "message.flexicat.shape_copied": "Форма скопирована в инструмент",
+  "message.flexicat.shape_pasted": "Форма вставлена",
+  "message.flexicat.shape_same": "У блока уже такая форма",
+  "message.flexicat.tool_empty": "В инструменте ещё нет формы — сначала скопируйте её",
+
+  "flexicat.configuration.title": "FlexiCat",
+  "flexicat.configuration.section.flexicat.client.toml": "Настройки клиента",
+  "flexicat.configuration.section.flexicat.client.toml.title": "Настройки клиента FlexiCat",
+  "flexicat.configuration.editing": "Редактирование",
+  "flexicat.configuration.editing.repeatDelayTicks": "Задержка автоповтора (тики)",
+  "flexicat.configuration.editing.repeatIntervalTicks": "Интервал автоповтора (тики)",
+  "flexicat.configuration.editing.handleSize": "Размер угловых точек",
+  "flexicat.configuration.editing.moveSounds": "Звуки редактирования",
+  "flexicat.configuration.editing.showHud": "Показывать подсказку при редактировании"
 }

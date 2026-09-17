@@ -76,6 +76,14 @@ class CornerShapeTest {
     }
 
     @Test
+    void countsMovedCorners() {
+        assertEquals(0, CornerShape.cube().movedCorners());
+        CornerShape s = CornerShape.cube().move(Corner.UP_EAST_NORTH, Axis.Y, -8).move(Corner.UP_WEST_NORTH, Axis.Y, -8);
+        assertEquals(2, s.movedCorners());
+        assertEquals(1, s.reset(Corner.UP_WEST_NORTH).movedCorners());
+    }
+
+    @Test
     void coincidentCornersStayDistinct() {
         CornerShape s = CornerShape.cube().with(Corner.UP_EAST_NORTH, new Vec3i16(16, 0, 0));
         assertEquals(s.position(Corner.DOWN_EAST_NORTH), s.position(Corner.UP_EAST_NORTH));

@@ -7,6 +7,8 @@ import io.netty.buffer.Unpooled;
 import net.minecraft.core.BlockPos;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class CornerMovePayloadTest {
@@ -19,20 +21,33 @@ class CornerMovePayloadTest {
         CornerMovePayload decoded = CornerMovePayload.STREAM_CODEC.decode(buf);
         assertEquals(original, decoded);
         assertEquals(0, buf.readableBytes(), "nothing left over");
-        assertEquals(Corner.UP_EAST_NORTH, decoded.corner());
+        assertEquals(List.of(Corner.UP_EAST_NORTH), decoded.corners());
         assertEquals(Axis.Y, decoded.axis());
     }
 
     @Test
-    void validatesCornerAxisAndStep() {
+    void carriesAGroupAsAMask() {
+        int top = Corner.mask(List.of(Corner.UP_WEST_NORTH, Corner.UP_EAST_NORTH, Corner.UP_WEST_SOUTH, Corner.UP_EAST_SOUTH));
+        CornerMovePayload payload = CornerMovePayload.ofMask(BlockPos.ZERO, top, Axis.Y, -1);
+        assertTrue(payload.isValid());
+        assertEquals(List.of(Corner.UP_WEST_NORTH, Corner.UP_EAST_NORTH, Corner.UP_WEST_SOUTH, Corner.UP_EAST_SOUTH),
+                payload.corners(), "index order");
+        ByteBuf buf = Unpooled.buffer();
+        CornerMovePayload.STREAM_CODEC.encode(buf, payload);
+        assertEquals(payload, CornerMovePayload.STREAM_CODEC.decode(buf));
+    }
+
+    @Test
+    void validatesMaskAxisAndStep() {
         BlockPos pos = BlockPos.ZERO;
-        assertTrue(new CornerMovePayload(pos, 0, 0, 1).isValid());
-        assertTrue(new CornerMovePayload(pos, 7, 2, -1).isValid());
-        assertFalse(new CornerMovePayload(pos, 8, 0, 1).isValid(), "corner out of range");
-        assertFalse(new CornerMovePayload(pos, -1, 0, 1).isValid(), "negative corner");
-        assertFalse(new CornerMovePayload(pos, 0, 3, 1).isValid(), "axis out of range");
-        assertFalse(new CornerMovePayload(pos, 0, 0, 2).isValid(), "only single steps");
-        assertFalse(new CornerMovePayload(pos, 0, 0, 0).isValid(), "zero step");
+        assertTrue(new CornerMovePayload(pos, 1, 0, 1).isValid());
+        assertTrue(new CornerMovePayload(pos, Corner.ALL_MASK, 2, -1).isValid());
+        assertFalse(new CornerMovePayload(pos, 0, 0, 1).isValid(), "empty selection");
+        assertFalse(new CornerMovePayload(pos, Corner.ALL_MASK + 1, 0, 1).isValid(), "bit beyond the eight corners");
+        assertFalse(new CornerMovePayload(pos, -1, 0, 1).isValid(), "negative mask");
+        assertFalse(new CornerMovePayload(pos, 1, 3, 1).isValid(), "axis out of range");
+        assertFalse(new CornerMovePayload(pos, 1, 0, 2).isValid(), "only single steps");
+        assertFalse(new CornerMovePayload(pos, 1, 0, 0).isValid(), "zero step");
     }
 
     @Test
