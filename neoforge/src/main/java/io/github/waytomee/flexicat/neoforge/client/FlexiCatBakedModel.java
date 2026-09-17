@@ -138,6 +138,7 @@ public final class FlexiCatBakedModel extends BakedModelWrapper<BakedModel> {
     /** Pack one mesh face into vanilla's 8-int-per-vertex block format. */
     static BakedQuad bake(ShapeMesh.Face face, TextureAtlasSprite sprite, int tintIndex) {
         int[] vertices = new int[32];
+        int normal = packNormal(face.unitNormal());
         for (int i = 0; i < 4; i++) {
             ShapeMesh.Vertex v = face.vertex(i);
             int o = i * 8;
@@ -147,9 +148,24 @@ public final class FlexiCatBakedModel extends BakedModelWrapper<BakedModel> {
             vertices[o + 3] = -1; // white; tinting (if any) is applied by the block colour handler
             vertices[o + 4] = Float.floatToRawIntBits(sprite.getU(v.u() / (float) CornerShape.GRID));
             vertices[o + 5] = Float.floatToRawIntBits(sprite.getV(v.v() / (float) CornerShape.GRID));
-            // [6], [7]: lightmap + normal, filled in by the renderer
+            // [6]: lightmap, filled in by the renderer
+            vertices[o + 7] = normal;
         }
         return new BakedQuad(vertices, tintIndex, direction(face.lightFace()), sprite, true, false);
+    }
+
+    /**
+     * The face's real normal, the same on all four vertices. Vanilla leaves this slot
+     * empty and substitutes the quad's axis direction; the light pipelines that do
+     * read vertex normals (NeoForge's experimental one, shader packs) would otherwise
+     * derive one from the first triangle only, shading a folded face in two halves.
+     * Format: signed bytes x, y, z in the low three bytes, as in {@code IQuadTransformer}.
+     */
+    private static int packNormal(float[] n) {
+        int x = (byte) Math.round(n[0] * 127);
+        int y = (byte) Math.round(n[1] * 127);
+        int z = (byte) Math.round(n[2] * 127);
+        return (x & 0xFF) | ((y & 0xFF) << 8) | ((z & 0xFF) << 16);
     }
 
     static Direction direction(CubeFace face) {

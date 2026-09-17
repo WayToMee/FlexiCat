@@ -102,6 +102,41 @@ public class FlexiCatBlock extends BaseEntityBlock {
         return entityAt(level, pos).map(FlexiCatBlockEntity::collisionShape).orElse(Shapes.block());
     }
 
+    // --- light ---------------------------------------------------------------------
+
+    /**
+     * A deformed block lets light through like a stair or slab (light block 0); an
+     * undeformed cube blocks it like its material would, or completely when unfilled.
+     *
+     * <p>Vanilla's defaults would give the cube a light block of {@code 1} (no
+     * occlusion + full shape): the block's own cell ends up one level darker than its
+     * surroundings, and since deformed faces sample light at that cell, two blocks in
+     * the same plane rendered with different brightness depending on when the light
+     * engine last looked at them. {@link FlexiCatBlockEntity} asks for a relight whenever
+     * the shape crosses the cube boundary, because a block-entity change alone never does.
+     */
+    @Override
+    protected int getLightBlock(BlockState state, BlockGetter level, BlockPos pos) {
+        Optional<FlexiCatBlockEntity> be = entityAt(level, pos);
+        if (be.isPresent() && !be.get().shape().isCube()) {
+            return 0;
+        }
+        return be.flatMap(FlexiCatBlockEntity::material)
+                .map(material -> material.getLightBlock(level, pos))
+                .orElse(level.getMaxLightLevel());
+    }
+
+    @Override
+    protected boolean propagatesSkylightDown(BlockState state, BlockGetter level, BlockPos pos) {
+        Optional<FlexiCatBlockEntity> be = entityAt(level, pos);
+        if (be.isPresent() && !be.get().shape().isCube()) {
+            return true;
+        }
+        return be.flatMap(FlexiCatBlockEntity::material)
+                .map(material -> material.propagatesSkylightDown(level, pos))
+                .orElse(false);
+    }
+
     // --- filling (stage 6) ---------------------------------------------------------
 
     /**

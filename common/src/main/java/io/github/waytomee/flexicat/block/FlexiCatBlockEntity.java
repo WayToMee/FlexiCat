@@ -15,6 +15,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 
@@ -91,8 +92,12 @@ public class FlexiCatBlockEntity extends BlockEntity {
         if (newShape.equals(shape)) {
             return false;
         }
+        boolean lightChanged = newShape.isCube() != shape.isCube();
         shape = newShape;
         invalidateShapes();
+        if (lightChanged) {
+            relight();
+        }
         sync();
         return true;
     }
@@ -108,8 +113,28 @@ public class FlexiCatBlockEntity extends BlockEntity {
             return false;
         }
         material = newMaterial;
+        if (shape.isCube()) {
+            relight(); // the material decides how much light a cube blocks
+        }
         sync();
         return true;
+    }
+
+    /**
+     * The light engine only re-evaluates a block when its <em>state</em> changes
+     * ({@code LevelChunk.setBlockState} → {@code hasDifferentLightProperties}); a shape
+     * or material change lives in this block entity, so we have to ask for it ourselves.
+     * Otherwise a cube that was deformed keeps the darker light of the cube it was, and
+     * blocks in one plane end up with different brightness.
+     */
+    private void relight() {
+        Level level = getLevel();
+        if (level == null || !level.hasChunkAt(worldPosition)) {
+            return;
+        }
+        LevelChunk chunk = level.getChunkAt(worldPosition);
+        chunk.getSkyLightSources().update(chunk, worldPosition.getX() & 15, worldPosition.getY(), worldPosition.getZ() & 15);
+        level.getLightEngine().checkBlock(worldPosition);
     }
 
     private void sync() {
@@ -156,11 +181,16 @@ public class FlexiCatBlockEntity extends BlockEntity {
             loadedMaterial = read.isAir() ? null : read; // unknown block (removed mod) reads as air: treat as empty
         }
         boolean changed = !loadedShape.equals(shape) || !Objects.equals(loadedMaterial, material);
+        boolean lightChanged = loadedShape.isCube() != shape.isCube()
+                || (loadedShape.isCube() && !Objects.equals(loadedMaterial, material));
         shape = loadedShape;
         material = loadedMaterial;
         invalidateShapes();
         Level level = getLevel();
         if (changed && level != null && level.isClientSide()) {
+            if (lightChanged) {
+                relight();
+            }
             onSyncedOnClient();
         }
     }

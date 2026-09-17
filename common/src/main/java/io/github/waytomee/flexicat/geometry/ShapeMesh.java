@@ -22,7 +22,10 @@ import java.util.List;
  *       moved corner slides the texture with it instead of stretching the whole face.</li>
  *   <li>Each face carries a {@link Face#lightFace()}: the cube face whose direction
  *       is closest to the deformed face's normal. Renderers use it for directional
- *       shading and light sampling.</li>
+ *       shading and light sampling. It also carries the exact {@link Face#areaNormal()},
+ *       which renderers write into every vertex so both triangles of a face are shaded
+ *       as one plane by anything that reads vertex normals (shaders, custom light
+ *       pipelines) instead of deriving a normal from the first triangle only.</li>
  * </ul>
  */
 public final class ShapeMesh {
@@ -36,10 +39,13 @@ public final class ShapeMesh {
      * @param face          the cube face this quad descends from (defines its vertex order; the
      *                      order is rotated so {@code v0–v2} is the split diagonal)
      * @param lightFace     the face whose direction best matches the quad's actual normal
+     * @param areaNormal    the quad's area-weighted normal (sum of both triangles, grid units);
+     *                      identical for every vertex so the whole face shades as one plane
      * @param fullCubeFace  {@code true} if the quad is exactly the undeformed cube face and
      *                      may be culled against an opaque neighbour like a vanilla block face
      */
-    public record Face(CubeFace face, CubeFace lightFace, boolean fullCubeFace, Vertex v0, Vertex v1, Vertex v2, Vertex v3) {
+    public record Face(CubeFace face, CubeFace lightFace, Vec3i16 areaNormal, boolean fullCubeFace,
+                       Vertex v0, Vertex v1, Vertex v2, Vertex v3) {
 
         public Vertex vertex(int i) {
             return switch (i & 3) {
@@ -48,6 +54,15 @@ public final class ShapeMesh {
                 case 2 -> v2;
                 default -> v3;
             };
+        }
+
+        /** Unit normal of the face as {x, y, z}; renderers write it to every vertex. */
+        public float[] unitNormal() {
+            double len = Math.sqrt((double) areaNormal.lengthSquared());
+            if (len == 0) {
+                return new float[] {0, 0, 0};
+            }
+            return new float[] {(float) (areaNormal.x() / len), (float) (areaNormal.y() / len), (float) (areaNormal.z() / len)};
         }
     }
 
@@ -69,7 +84,7 @@ public final class ShapeMesh {
                 float[] uv = uv(cubeFace, p);
                 vs[i] = new Vertex((float) p.xBlocks(), (float) p.yBlocks(), (float) p.zBlocks(), uv[0], uv[1]);
             }
-            faces.add(new Face(cubeFace, lightFace(quad), quad.isFullCubeFace(), vs[0], vs[1], vs[2], vs[3]));
+            faces.add(new Face(cubeFace, lightFace(quad), quad.areaNormal(), quad.isFullCubeFace(), vs[0], vs[1], vs[2], vs[3]));
         }
         return faces;
     }

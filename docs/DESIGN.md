@@ -83,7 +83,19 @@ These are baked into the geometry core (`common/…/geometry`) and into saved da
   face is emitted unculled.
 - Shading: each face carries a "light face" — the cube direction closest to its actual normal
   (ties favour Y) — used for directional shading and light sampling. Smooth lighting (AO) is
-  disabled for non-cube shapes; it samples the cell corners and looks wrong on slopes.
+  disabled for non-cube shapes; it samples the cell corners and looks wrong on slopes. Every
+  vertex also carries the face's real unit normal (the same on all four), so pipelines that read
+  vertex normals (shader packs, NeoForge's experimental light pipeline) shade both triangles of
+  a folded face as one plane instead of deriving a normal from the first triangle only.
+- Light: a deformed block lets light through like a stair (light block 0, skylight passes);
+  an undeformed cube blocks light like its material, or fully when unfilled. The vanilla
+  defaults for a `noOcclusion` + `dynamicShape` block gave the cube a light block of 1, so the
+  block's own cell was one level darker than its surroundings — and because vanilla samples the
+  light of a non-flush face at the block's *own* cell, blocks in one plane rendered with
+  different brightness depending on when the light engine last looked at them. The light
+  engine only re-checks a block when its block *state* changes, never when the block entity
+  does, so `FlexiCatBlockEntity` asks for a relight itself whenever the shape crosses the
+  cube boundary or a cube's material changes (server and client).
 - NeoForge wiring: `NeoForgeFlexiCatBlockEntity` publishes the shape as `ModelData` and requests a
   model-data refresh whenever a synced shape differs; `FlexiCatBakedModel` wraps the JSON
   placeholder model (kept for texture, particle sprite and item rendering) and builds quads at
