@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "group": "flexicat",
+  "pattern": [
+    "S S",
+    " N ",
+    "S S"
+  ],
+  "key": {
+    "S": { "item": "minecraft:stick" },
+    "N": { "item": "minecraft:iron_nugget" }
+  },
+  "result": {
+    "id": "flexicat:flexicat_block",
+    "count": 4
+  }
+}

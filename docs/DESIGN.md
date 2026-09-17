@@ -228,6 +228,12 @@ after which it looks like that block — the copycat idea.
   default 1 after in-game testing — 1.5 felt too large),
   editing sounds on/off, HUD hint on/off. Values are read live. Nothing gameplay-relevant is
   configurable on the client; there is no server config yet.
+- **Recipes.** Both items are craftable in survival (`data/flexicat/recipe/`, plain vanilla
+  ingredients, no new textures): four sticks in the corners around an iron nugget give **4
+  FlexiCat blocks** (the corner motif — the block is a frame you shape); an iron ingot on a
+  diagonal of two sticks gives the **corner tool**. Recipe-book unlock advancements live in
+  `data/flexicat/advancement/recipes/` (the block on picking up an iron nugget, the tool on
+  picking up a FlexiCat block).
 - **Localisation.** English and Russian for every key binding, corner name, HUD message,
   tooltip and config entry (`assets/flexicat/lang/{en_us,ru_ru}.json`).
 
