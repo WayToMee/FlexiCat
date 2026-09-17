@@ -33,16 +33,24 @@ These are baked into the geometry core (`common/…/geometry`) and into saved da
 ## What v1 is
 
 - One block type, fillable with a material (like a copycat).
-- One tool. Right-click a block → corners shown as handles. Aim at a handle to select it.
+- One tool. Right-click a block → corners shown as handles. Right-click a handle to select it.
   Move the selected handle along an axis in ±1 grid steps.
 - Server-authoritative shape: the client sends *intents* ("move corner 3 on Y by -1", payload
   `flexicat:corner_move`), the server validates (tool held, may build, block in reach and loaded,
   really a FlexiCat block, single grid step), applies the clamped move and syncs the block entity.
   The client does not predict; handles follow the synced shape.
-- Selection is "sticky aim": the handle under the crosshair becomes the selected corner and stays
-  selected until another handle is aimed at, so a corner pushed away from the crosshair keeps
-  receiving moves. Right-clicking the block again (or letting go of the tool / walking out of
-  reach) ends editing.
+- Selection is explicit: the handle under the crosshair is only *hovered* (highlighted white);
+  a right-click with the tool on it makes it the selected corner (yellow), and it stays selected
+  until another handle is clicked — the aim is free to wander while keys move the corner. (Stage 3
+  used "sticky aim" — hover selected — which slipped too easily; changed after in-game testing.)
+  Right-clicking the block itself (not a handle), letting go of the tool or walking out of reach
+  ends editing.
+- Move keys are read as *held state* each client tick, not as click events: one move on press,
+  then after a short delay one move every two ticks while held (`HeldKeyRepeater`, pure Java).
+  GLFW only auto-repeats the last key pressed, so the vanilla click counter stops while a walking
+  key is also held; sampling the down state fixes that and caps the move rate (≈10/s) so a held
+  key cannot flood the server with shape rebuilds. A move that cannot change the shape (corner
+  already at the cell boundary) is not sent at all.
 - Handles are picked against the *current* corner positions (`HandlePicker`), not the placeholder
   cube model, so they stay correct once the real mesh renders.
 - Visual mesh, collision shape, ray-cast target, culling and neighbour behaviour are **separate
@@ -89,7 +97,13 @@ without mixins. FlexiCat therefore approximates the deformed hull with boxes:
   box padded to 1/16 so it can still be aimed at and stood on. Results are cached process-wide
   (LRU, keyed by `CornerShape`) on top of the per-block-entity cache, because many blocks share a
   shape.
-- `FlexiCatBlock.getShape/getCollisionShape` return that shape. The block **must** be registered
+- **Two resolutions.** The voxeliser takes a cell size. `getShape` (picking, outline) uses 1/16
+  cells. `getCollisionShape` uses **4/16 cells** (`FlexiCatShapes.collisionOf`): vanilla's step-up
+  logic climbs each box edge separately, so on a 1/16 staircase a player advances ~1/16 per tick
+  and bobs sixteen times per block — slow and jerky. With 4/16 steps slopes are climbed at walking
+  speed, like stairs, at the cost of the collision surface being off by up to one coarse cell.
+  Picking is unaffected. A genuinely smooth slide would need an entity-movement mixin; not in v1.
+- `FlexiCatBlock.getShape/getCollisionShape` return those shapes. The block **must** be registered
   with `dynamicShape()`: otherwise vanilla pre-computes the collision shape per block state at
   startup — with no block entity in reach — and every FlexiCat block would collide as a full cube
   (`isCollisionShapeFullBlock`, `largeCollisionShape`, `getCollisionShape(level,pos)` are all
@@ -102,9 +116,10 @@ without mixins. FlexiCat therefore approximates the deformed hull with boxes:
   decided by the voxel shape; what is shown is the real geometry.
 - Corner handles (`HandlePicker`) are unaffected: they are picked against the live corner
   positions, not against the voxel shape.
-- Known limits: one-cell staircase on slopes (players "step" up ramps rather than slide — the
-  same behaviour as stairs); flat plates collide as 1/16 slabs. Fabric needs its own outline hook;
-  the geometry and `VoxelShape` construction are shared.
+- Known limits: slopes are 4/16 staircases for entities (players "step" up ramps rather than
+  slide — the same behaviour as stairs); flat plates collide as 1/16 slabs. Fabric needs its own
+  outline hook and its own use-key hook for handle selection; the geometry and `VoxelShape`
+  construction are shared.
 
 ## Candidates for v1, not yet decided
 

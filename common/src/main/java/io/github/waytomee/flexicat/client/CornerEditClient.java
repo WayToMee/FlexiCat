@@ -6,6 +6,7 @@ import io.github.waytomee.flexicat.block.FlexiCatBlockEntity;
 import io.github.waytomee.flexicat.edit.CornerEditServer;
 import io.github.waytomee.flexicat.edit.CornerMove;
 import io.github.waytomee.flexicat.edit.HandlePicker;
+import io.github.waytomee.flexicat.edit.HeldKeyRepeater;
 import io.github.waytomee.flexicat.geometry.Corner;
 import io.github.waytomee.flexicat.geometry.CornerShape;
 import io.github.waytomee.flexicat.geometry.Vec3i16;
@@ -22,28 +23,40 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
 /**
  * Client-side corner editing session.
  *
- * <p>There is at most one session: the block whose handles are shown. Selection is
- * "sticky aim": the handle under the crosshair becomes the selected corner and
- * stays selected until another handle is aimed at, so a corner that has been
- * pushed away from the crosshair keeps receiving moves. Key presses become
- * {@link CornerMovePayload} intents; nothing is predicted locally — the shape
- * changes when the server's block-entity sync arrives.
+ * <p>There is at most one session: the block whose handles are shown. The handle
+ * under the crosshair is only <em>hovered</em> (highlighted); it becomes the
+ * <em>selected</em> corner when the player right-clicks it with the tool, and stays
+ * selected until another handle is clicked, so the aim is free to wander while keys
+ * move the corner. Key presses become {@link CornerMovePayload} intents; nothing is
+ * predicted locally — the shape changes when the server's block-entity sync arrives.
  *
- * <p>The loader module calls {@link #tick} every client tick and {@link #render}
- * from its world-render hook.
+ * <p>Move keys are sampled as held/released each tick and turned into repeats by
+ * {@link HeldKeyRepeater}, so holding an arrow key keeps moving the corner even while
+ * walking (the OS only repeats the last key pressed), and the repeat rate caps how
+ * often the shape is rebuilt.
+ *
+ * <p>The loader module calls {@link #tick} every client tick, {@link #onUseKey} when
+ * the use key is pressed (before vanilla handles it) and {@link #render} from its
+ * world-render hook.
  */
 public final class CornerEditClient {
+
+    private static final HeldKeyRepeater REPEATER = new HeldKeyRepeater(FlexiCatKeys.all().size(),
+            HeldKeyRepeater.DEFAULT_INITIAL_DELAY, HeldKeyRepeater.DEFAULT_REPEAT_INTERVAL);
 
     @Nullable
     private static BlockPos editing;
     @Nullable
     private static Corner selected;
+    @Nullable
+    private static Corner hovered;
 
     private CornerEditClient() {
     }
@@ -56,13 +69,15 @@ public final class CornerEditClient {
         return Optional.ofNullable(selected);
     }
 
-    /** Right-click with the tool on a FlexiCat block: toggle editing for it. */
+    /** Right-click with the tool on a FlexiCat block (not on a handle): toggle editing for it. */
     public static void onToolUsed(BlockPos pos) {
         if (pos.equals(editing)) {
             stop();
         } else {
             editing = pos.immutable();
             selected = null;
+            hovered = null;
+            REPEATER.reset();
         }
     }
 
@@ -72,11 +87,40 @@ public final class CornerEditClient {
         }
         editing = null;
         selected = null;
+        hovered = null;
+        REPEATER.reset();
+    }
+
+    /**
+     * The use key was pressed. If a handle of the edited block is under the crosshair
+     * (tool in hand, not sneaking), select it and consume the click so vanilla does not
+     * also interact with the block behind it.
+     *
+     * @return {@code true} if the click selected a handle and must not reach vanilla
+     */
+    public static boolean onUseKey(Minecraft mc) {
+        BlockPos pos = editing;
+        LocalPlayer player = mc.player;
+        ClientLevel level = mc.level;
+        if (pos == null || player == null || level == null
+                || !CornerToolItem.isHeldBy(player) || player.isSecondaryUseActive()) {
+            return false;
+        }
+        Optional<FlexiCatBlockEntity> target = FlexiCatBlock.entityAt(level, pos);
+        if (target.isEmpty()) {
+            return false;
+        }
+        Optional<Corner> hit = pickHandle(player, pos, target.get().shape());
+        if (hit.isEmpty()) {
+            return false;
+        }
+        selected = hit.get();
+        return true;
     }
 
     public static void tick(Minecraft mc) {
+        drainClicks();
         if (editing == null) {
-            drainKeys();
             return;
         }
         LocalPlayer player = mc.player;
@@ -85,21 +129,19 @@ public final class CornerEditClient {
                 || !CornerToolItem.isHeldBy(player)
                 || !player.canInteractWithBlock(editing, CornerEditServer.REACH_PADDING)) {
             stop();
-            drainKeys();
             return;
         }
         Optional<FlexiCatBlockEntity> target = FlexiCatBlock.entityAt(level, editing);
         if (target.isEmpty()) {
             stop();
-            drainKeys();
             return;
         }
         CornerShape shape = target.get().shape();
-        updateSelection(player, shape);
+        hovered = pickHandle(player, editing, shape).orElse(null);
         if (mc.screen == null) {
-            handleKeys(player);
+            handleKeys(player, shape);
         } else {
-            drainKeys();
+            REPEATER.reset();
         }
         mc.gui.setOverlayMessage(hud(shape), false);
     }
@@ -119,51 +161,65 @@ public final class CornerEditClient {
             return;
         }
         CornerHandleRenderer.render(poseStack, mc.renderBuffers().bufferSource(), cameraPos,
-                editing, target.get().shape(), selected);
+                editing, target.get().shape(), selected, hovered);
     }
 
-    private static void updateSelection(LocalPlayer player, CornerShape shape) {
-        BlockPos pos = editing;
-        if (pos == null) {
-            return;
-        }
+    private static Optional<Corner> pickHandle(LocalPlayer player, BlockPos pos, CornerShape shape) {
         Vec3 eye = player.getEyePosition();
         Vec3 look = player.getViewVector(1.0F);
         double range = player.blockInteractionRange() + CornerEditServer.REACH_PADDING;
-        HandlePicker.pick(shape,
+        return HandlePicker.pick(shape,
                         eye.x - pos.getX(), eye.y - pos.getY(), eye.z - pos.getZ(),
                         look.x, look.y, look.z,
                         HandlePicker.DEFAULT_HALF_SIZE, range)
-                .ifPresent(hit -> selected = hit.corner());
+                .map(HandlePicker.Hit::corner);
     }
 
-    private static void handleKeys(LocalPlayer player) {
+    private static void handleKeys(LocalPlayer player, CornerShape shape) {
         Direction facing = player.getDirection();
-        sendMoves(FlexiCatKeys.MOVE_UP, CornerMove.UP);
-        sendMoves(FlexiCatKeys.MOVE_DOWN, CornerMove.DOWN);
-        sendMoves(FlexiCatKeys.MOVE_LEFT, CornerMove.fromDirection(facing.getCounterClockWise()));
-        sendMoves(FlexiCatKeys.MOVE_RIGHT, CornerMove.fromDirection(facing.getClockWise()));
-        sendMoves(FlexiCatKeys.MOVE_AWAY, CornerMove.fromDirection(facing));
-        sendMoves(FlexiCatKeys.MOVE_TOWARDS, CornerMove.fromDirection(facing.getOpposite()));
+        List<KeyMapping> keys = FlexiCatKeys.all();
+        for (int i = 0; i < keys.size(); i++) {
+            KeyMapping key = keys.get(i);
+            if (REPEATER.tick(i, key.isDown())) {
+                send(shape, moveFor(key, facing));
+            }
+        }
     }
 
-    private static void sendMoves(KeyMapping key, CornerMove move) {
-        int presses = 0;
-        while (key.consumeClick()) {
-            presses++;
+    private static CornerMove moveFor(KeyMapping key, Direction facing) {
+        if (key == FlexiCatKeys.MOVE_UP) {
+            return CornerMove.UP;
         }
+        if (key == FlexiCatKeys.MOVE_DOWN) {
+            return CornerMove.DOWN;
+        }
+        if (key == FlexiCatKeys.MOVE_LEFT) {
+            return CornerMove.fromDirection(facing.getCounterClockWise());
+        }
+        if (key == FlexiCatKeys.MOVE_RIGHT) {
+            return CornerMove.fromDirection(facing.getClockWise());
+        }
+        if (key == FlexiCatKeys.MOVE_AWAY) {
+            return CornerMove.fromDirection(facing);
+        }
+        return CornerMove.fromDirection(facing.getOpposite());
+    }
+
+    /** Send one move intent, unless it could not change the shape (corner already clamped). */
+    private static void send(CornerShape shape, CornerMove move) {
         BlockPos pos = editing;
         Corner corner = selected;
-        if (presses == 0 || pos == null || corner == null) {
+        if (pos == null || corner == null) {
             return;
         }
-        for (int i = 0; i < presses; i++) {
-            LoaderHooks.sendToServer(CornerMovePayload.of(pos, corner, move.axis(), move.delta()));
+        if (shape.move(corner, move.axis(), move.delta()).equals(shape)) {
+            return; // at the edge of the cell on that axis: nothing to do
         }
+        LoaderHooks.sendToServer(CornerMovePayload.of(pos, corner, move.axis(), move.delta()));
     }
 
-    /** Consume pending presses so they do not pile up and fire when editing starts. */
-    private static void drainKeys() {
+    /** Presses are read as held state, so vanilla's click counter is never used; keep it empty. */
+    private static void drainClicks() {
         for (KeyMapping key : FlexiCatKeys.all()) {
             while (key.consumeClick()) {
                 // discard

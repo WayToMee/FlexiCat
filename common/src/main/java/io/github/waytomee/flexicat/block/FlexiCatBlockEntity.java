@@ -32,6 +32,7 @@ public class FlexiCatBlockEntity extends BlockEntity {
 
     private CornerShape shape = CornerShape.cube();
     private VoxelShape voxelShape;
+    private VoxelShape collisionShape;
 
     public FlexiCatBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
         super(type, pos, state);
@@ -52,6 +53,19 @@ public class FlexiCatBlockEntity extends BlockEntity {
         return voxelShape;
     }
 
+    /** Coarser entity-collision shape (see {@link FlexiCatShapes#collisionOf}), cached until the shape changes. */
+    public VoxelShape collisionShape() {
+        if (collisionShape == null) {
+            collisionShape = FlexiCatShapes.collisionOf(shape);
+        }
+        return collisionShape;
+    }
+
+    private void invalidateShapes() {
+        voxelShape = null;
+        collisionShape = null;
+    }
+
     /**
      * Replace the shape. Intended for the logical server; on a client it only
      * updates the local copy (used when applying a sync packet).
@@ -64,7 +78,7 @@ public class FlexiCatBlockEntity extends BlockEntity {
             return false;
         }
         shape = newShape;
-        voxelShape = null;
+        invalidateShapes();
         setChanged();
         Level level = getLevel();
         if (level != null && !level.isClientSide()) {
@@ -102,7 +116,7 @@ public class FlexiCatBlockEntity extends BlockEntity {
         CornerShape loaded = CornerShapeCodecs.read(tag);
         boolean changed = !loaded.equals(shape);
         shape = loaded;
-        voxelShape = null;
+        invalidateShapes();
         Level level = getLevel();
         if (changed && level != null && level.isClientSide()) {
             onShapeSyncedOnClient();

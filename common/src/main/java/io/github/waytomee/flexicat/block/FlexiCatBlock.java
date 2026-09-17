@@ -78,9 +78,10 @@ public class FlexiCatBlock extends BaseEntityBlock {
         return entityAt(level, pos).map(FlexiCatBlockEntity::voxelShape).orElse(Shapes.block());
     }
 
+    /** Entities collide with a coarser version of the hull (4/16 steps), so slopes are walkable. */
     @Override
     protected VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
-        return getShape(state, level, pos, context);
+        return entityAt(level, pos).map(FlexiCatBlockEntity::collisionShape).orElse(Shapes.block());
     }
 
     /** The block entity at {@code pos}, if it is a FlexiCat one. */

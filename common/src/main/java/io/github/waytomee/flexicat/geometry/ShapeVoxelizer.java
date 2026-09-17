@@ -14,21 +14,24 @@ import java.util.List;
  *   <li>The twelve triangles of the shape (each face split along its contract
  *       diagonal, degenerate triangles dropped) form a closed surface, even when
  *       faces are non-planar or the shape is concave.</li>
- *   <li>Every one of the {@code 16³} grid cells is classified by its centre: a ray
- *       from the centre is intersected with the twelve triangles and an odd number of
- *       crossings means "inside". Centre sampling keeps the approximation tight
- *       (never fatter than one cell) and monotone: pulling a corner in never adds
- *       collision.</li>
+ *   <li>Every grid cell is classified by its centre: a ray from the centre is
+ *       intersected with the twelve triangles and an odd number of crossings means
+ *       "inside". Centre sampling keeps the approximation tight (never fatter than
+ *       one cell) and monotone: pulling a corner in never adds collision.</li>
  *   <li>Filled cells are merged greedily (x, then y, then z) into as few boxes as the
  *       scan order allows. The result is deterministic for a given shape.</li>
  * </ol>
+ *
+ * <p>The cell size is a parameter: {@code 1} gives the exact 1/16 staircase used for
+ * picking; a coarser size (e.g. {@code 4}) gives fewer, taller steps, which is what
+ * entity movement wants (see {@link #voxelize(CornerShape, int)}).
  *
  * <p>Shapes with no volume (flat plates, zero-thickness slivers) yield an empty list;
  * callers substitute a thin fallback so the block stays targetable.
  */
 public final class ShapeVoxelizer {
 
-    /** Number of sample cells per axis; equals the corner grid, so boxes align with corner positions. */
+    /** Number of sample cells per axis at full resolution; equals the corner grid. */
     public static final int RESOLUTION = CornerShape.GRID;
 
     /**
@@ -49,13 +52,30 @@ public final class ShapeVoxelizer {
         public int volume() {
             return (maxX - minX) * (maxY - minY) * (maxZ - minZ);
         }
+
+        Box scaled(int factor) {
+            return new Box(minX * factor, minY * factor, minZ * factor, maxX * factor, maxY * factor, maxZ * factor);
+        }
     }
 
     private ShapeVoxelizer() {
     }
 
-    /** Boxes covering the shape's volume, or an empty list for a shape without volume. */
+    /** Boxes covering the shape's volume on the 1/16 grid, or an empty list for a shape without volume. */
     public static List<Box> voxelize(CornerShape shape) {
+        return voxelize(shape, 1);
+    }
+
+    /**
+     * Boxes covering the shape's volume with cells of {@code cell} grid units
+     * ({@code cell} must divide {@link #RESOLUTION}). Each cell is classified by its
+     * centre, so a coarse cell can be off by up to half its size either way; box
+     * coordinates (in grid units) are multiples of {@code cell}.
+     */
+    public static List<Box> voxelize(CornerShape shape, int cell) {
+        if (cell < 1 || RESOLUTION % cell != 0) {
+            throw new IllegalArgumentException("cell size must divide " + RESOLUTION + ": " + cell);
+        }
         if (shape.isCube()) {
             return FULL;
         }
@@ -66,21 +86,40 @@ public final class ShapeVoxelizer {
         if (tris.length == 0) {
             return Collections.emptyList();
         }
-        boolean[] filled = new boolean[RESOLUTION * RESOLUTION * RESOLUTION];
+        int n = RESOLUTION / cell;
+        boolean[] filled = new boolean[n * n * n];
         int[] b = shape.bounds();
         boolean any = false;
-        // Only cells inside the corner bounds can be inside the shape.
-        for (int z = b[4]; z < b[5]; z++) {
-            for (int y = b[2]; y < b[3]; y++) {
-                for (int x = b[0]; x < b[1]; x++) {
-                    if (contains(tris, x + 0.5, y + 0.5, z + 0.5)) {
-                        filled[index(x, y, z)] = true;
+        // Only cells overlapping the corner bounds can be inside the shape.
+        int x0 = b[0] / cell, x1 = ceilDiv(b[1], cell);
+        int y0 = b[2] / cell, y1 = ceilDiv(b[3], cell);
+        int z0 = b[4] / cell, z1 = ceilDiv(b[5], cell);
+        for (int z = z0; z < z1; z++) {
+            for (int y = y0; y < y1; y++) {
+                for (int x = x0; x < x1; x++) {
+                    if (contains(tris, (x + 0.5) * cell, (y + 0.5) * cell, (z + 0.5) * cell)) {
+                        filled[index(x, y, z, n)] = true;
                         any = true;
                     }
                 }
             }
         }
-        return any ? merge(filled) : Collections.emptyList();
+        if (!any) {
+            return Collections.emptyList();
+        }
+        List<Box> boxes = merge(filled, n);
+        if (cell == 1) {
+            return boxes;
+        }
+        List<Box> scaled = new ArrayList<>(boxes.size());
+        for (Box box : boxes) {
+            scaled.add(box.scaled(cell));
+        }
+        return scaled;
+    }
+
+    private static int ceilDiv(int a, int b) {
+        return (a + b - 1) / b;
     }
 
     /**
@@ -154,37 +193,37 @@ public final class ShapeVoxelizer {
 
     // --- merging -------------------------------------------------------------------
 
-    private static int index(int x, int y, int z) {
-        return (z * RESOLUTION + y) * RESOLUTION + x;
+    private static int index(int x, int y, int z, int n) {
+        return (z * n + y) * n + x;
     }
 
-    /** Greedy run-length merge: extend along x, then grow the row along y, then the slab along z. */
-    static List<Box> merge(boolean[] filled) {
+    /** Greedy run-length merge on an {@code n³} grid: extend along x, then grow the row along y, then the slab along z. */
+    static List<Box> merge(boolean[] filled, int n) {
         boolean[] used = new boolean[filled.length];
         List<Box> boxes = new ArrayList<>();
-        for (int z = 0; z < RESOLUTION; z++) {
-            for (int y = 0; y < RESOLUTION; y++) {
-                for (int x = 0; x < RESOLUTION; x++) {
-                    int i = index(x, y, z);
+        for (int z = 0; z < n; z++) {
+            for (int y = 0; y < n; y++) {
+                for (int x = 0; x < n; x++) {
+                    int i = index(x, y, z, n);
                     if (!filled[i] || used[i]) {
                         continue;
                     }
                     int x2 = x;
-                    while (x2 + 1 < RESOLUTION && free(filled, used, x2 + 1, y, z)) {
+                    while (x2 + 1 < n && free(filled, used, x2 + 1, y, z, n)) {
                         x2++;
                     }
                     int y2 = y;
-                    while (y2 + 1 < RESOLUTION && rowFree(filled, used, x, x2, y2 + 1, z)) {
+                    while (y2 + 1 < n && rowFree(filled, used, x, x2, y2 + 1, z, n)) {
                         y2++;
                     }
                     int z2 = z;
-                    while (z2 + 1 < RESOLUTION && slabFree(filled, used, x, x2, y, y2, z2 + 1)) {
+                    while (z2 + 1 < n && slabFree(filled, used, x, x2, y, y2, z2 + 1, n)) {
                         z2++;
                     }
                     for (int zz = z; zz <= z2; zz++) {
                         for (int yy = y; yy <= y2; yy++) {
                             for (int xx = x; xx <= x2; xx++) {
-                                used[index(xx, yy, zz)] = true;
+                                used[index(xx, yy, zz, n)] = true;
                             }
                         }
                     }
@@ -195,23 +234,23 @@ public final class ShapeVoxelizer {
         return boxes;
     }
 
-    private static boolean free(boolean[] filled, boolean[] used, int x, int y, int z) {
-        int i = index(x, y, z);
+    private static boolean free(boolean[] filled, boolean[] used, int x, int y, int z, int n) {
+        int i = index(x, y, z, n);
         return filled[i] && !used[i];
     }
 
-    private static boolean rowFree(boolean[] filled, boolean[] used, int x1, int x2, int y, int z) {
+    private static boolean rowFree(boolean[] filled, boolean[] used, int x1, int x2, int y, int z, int n) {
         for (int x = x1; x <= x2; x++) {
-            if (!free(filled, used, x, y, z)) {
+            if (!free(filled, used, x, y, z, n)) {
                 return false;
             }
         }
         return true;
     }
 
-    private static boolean slabFree(boolean[] filled, boolean[] used, int x1, int x2, int y1, int y2, int z) {
+    private static boolean slabFree(boolean[] filled, boolean[] used, int x1, int x2, int y1, int y2, int z, int n) {
         for (int y = y1; y <= y2; y++) {
-            if (!rowFree(filled, used, x1, x2, y, z)) {
+            if (!rowFree(filled, used, x1, x2, y, z, n)) {
                 return false;
             }
         }

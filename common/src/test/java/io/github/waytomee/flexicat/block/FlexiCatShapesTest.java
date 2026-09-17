@@ -41,6 +41,21 @@ class FlexiCatShapesTest {
     }
 
     @Test
+    void collisionShapeIsCoarserThanThePickShape() {
+        VoxelShape pick = FlexiCatShapes.of(wedge());
+        VoxelShape collision = FlexiCatShapes.collisionOf(wedge());
+        assertTrue(collision.toAabbs().size() < pick.toAabbs().size(),
+                "collision " + collision.toAabbs().size() + " boxes vs pick " + pick.toAabbs().size());
+        // Every collision box edge lies on the 4/16 grid.
+        for (AABB box : collision.toAabbs()) {
+            for (double v : new double[] {box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ}) {
+                assertEquals(0.0, (v * 16) % FlexiCatShapes.COLLISION_CELL, 1e-9, "edge at " + v);
+            }
+        }
+        assertSame(Shapes.block(), FlexiCatShapes.collisionOf(CornerShape.cube()));
+    }
+
+    @Test
     void rayHitsTheSlopeNotTheBoundingBox() {
         VoxelShape shape = FlexiCatShapes.of(wedge());
         // Centre sampling drops the sliver cells along the sharp edges: the shape ends

@@ -17,7 +17,9 @@ import net.minecraft.client.renderer.block.BlockModelShaper;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.client.resources.model.ModelResourceLocation;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.InteractionHand;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.ModelEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.event.RenderHighlightEvent;
@@ -40,6 +42,7 @@ public final class FlexiCatNeoForgeClient {
         modBus.addListener(FlexiCatNeoForgeClient::onRegisterKeyMappings);
         modBus.addListener(FlexiCatNeoForgeClient::onModifyBakingResult);
         NeoForge.EVENT_BUS.addListener(FlexiCatNeoForgeClient::onClientTick);
+        NeoForge.EVENT_BUS.addListener(FlexiCatNeoForgeClient::onInteractionKey);
         NeoForge.EVENT_BUS.addListener(FlexiCatNeoForgeClient::onRenderLevelStage);
         NeoForge.EVENT_BUS.addListener(FlexiCatNeoForgeClient::onRenderBlockHighlight);
     }
@@ -66,6 +69,20 @@ public final class FlexiCatNeoForgeClient {
 
     private static void onClientTick(ClientTickEvent.Post event) {
         CornerEditClient.tick(Minecraft.getInstance());
+    }
+
+    /**
+     * Right-click on a corner handle selects it. The event fires before vanilla's use
+     * handling, once per hand; cancelling it for the main hand stops the whole use.
+     */
+    private static void onInteractionKey(InputEvent.InteractionKeyMappingTriggered event) {
+        if (!event.isUseItem() || event.getHand() != InteractionHand.MAIN_HAND) {
+            return;
+        }
+        if (CornerEditClient.onUseKey(Minecraft.getInstance())) {
+            event.setSwingHand(false);
+            event.setCanceled(true);
+        }
     }
 
     private static void onRenderLevelStage(RenderLevelStageEvent event) {

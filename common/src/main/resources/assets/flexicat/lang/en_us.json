@@ -19,8 +19,8 @@
   "corner.flexicat.up_west_south": "Top south-west corner",
   "corner.flexicat.up_east_south": "Top south-east corner",
 
-  "message.flexicat.hud.aim": "FlexiCat: aim at a corner point to select it",
-  "message.flexicat.hud.selected": "%s at (%s, %s, %s) · %s/%s up/down · %s/%s left/right · %s/%s away/towards",
+  "message.flexicat.hud.aim": "FlexiCat: right-click a corner point to select it",
+  "message.flexicat.hud.selected": "%s at (%s, %s, %s) · %s/%s up/down · %s/%s left/right · %s/%s away/towards · right-click another point to switch",
   "message.flexicat.shape_reset": "Shape reset to a cube",
   "message.flexicat.shape_already_cube": "Already a cube"
 }

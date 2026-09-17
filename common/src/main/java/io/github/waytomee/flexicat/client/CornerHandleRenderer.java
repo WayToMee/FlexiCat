@@ -27,13 +27,18 @@ public final class CornerHandleRenderer {
 
     private static final int EDGE_COLOR = 0xD0FFFFFF;
     private static final int HANDLE_COLOR = 0xFF46B8FF;
+    private static final int HOVERED_COLOR = 0xFFFFFFFF;
     private static final int SELECTED_COLOR = 0xFFFFC53D;
 
     private CornerHandleRenderer() {
     }
 
+    /**
+     * @param selected the corner that receives moves (yellow), if any
+     * @param hovered  the corner under the crosshair that a right-click would select (white), if any
+     */
     public static void render(PoseStack poseStack, MultiBufferSource.BufferSource buffers, Vec3 camera,
-                              BlockPos pos, CornerShape shape, @Nullable Corner selected) {
+                              BlockPos pos, CornerShape shape, @Nullable Corner selected, @Nullable Corner hovered) {
         poseStack.pushPose();
         poseStack.translate(pos.getX() - camera.x, pos.getY() - camera.y, pos.getZ() - camera.z);
         PoseStack.Pose pose = poseStack.last();
@@ -48,7 +53,7 @@ public final class CornerHandleRenderer {
             double x = p.xBlocks();
             double y = p.yBlocks();
             double z = p.zBlocks();
-            int color = corner == selected ? SELECTED_COLOR : HANDLE_COLOR;
+            int color = corner == selected ? SELECTED_COLOR : corner == hovered ? HOVERED_COLOR : HANDLE_COLOR;
             LevelRenderer.renderLineBox(poseStack, lines,
                     x - h, y - h, z - h, x + h, y + h, z + h,
                     red(color), green(color), blue(color), alpha(color));

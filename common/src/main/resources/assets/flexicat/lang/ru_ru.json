@@ -19,8 +19,8 @@
   "corner.flexicat.up_west_south": "Верхний юго-западный угол",
   "corner.flexicat.up_east_south": "Верхний юго-восточный угол",
 
-  "message.flexicat.hud.aim": "FlexiCat: наведите прицел на угловую точку, чтобы выбрать её",
-  "message.flexicat.hud.selected": "%s в (%s, %s, %s) · %s/%s вверх/вниз · %s/%s влево/вправо · %s/%s от себя/к себе",
+  "message.flexicat.hud.aim": "FlexiCat: нажмите ПКМ по угловой точке, чтобы выбрать её",
+  "message.flexicat.hud.selected": "%s в (%s, %s, %s) · %s/%s вверх/вниз · %s/%s влево/вправо · %s/%s от себя/к себе · ПКМ по другой точке — переключить",
   "message.flexicat.shape_reset": "Форма сброшена до куба",
   "message.flexicat.shape_already_cube": "Уже куб"
 }
