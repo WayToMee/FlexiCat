@@ -5,10 +5,13 @@ package io.github.waytomee.flexicat.geometry;
  * order, plus the geometric facts other systems need from it.
  *
  * <p>Eight corner positions do not fully define a non-planar quad: the surface
- * depends on which diagonal splits it. FlexiCat always splits along the diagonal
- * {@code corner(0) - corner(2)} (first and third corner of the face's fixed order).
- * That rule is stable across saving, copying and mirroring, so the same eight
- * points always produce the same surface.
+ * depends on which diagonal splits it. FlexiCat splits along the diagonal that passes
+ * through the corner lying farthest from the plane of the other three
+ * ({@link #splitStart()}). A single moved corner therefore always folds the face
+ * through itself — both triangles slope — instead of leaving half the face flat with a
+ * crease across the middle. Ties (planar faces, symmetric saddles) fall back to the
+ * first–third diagonal. The rule depends only on the positions, so the same eight
+ * points always produce the same surface, including under mirroring.
  */
 public record FaceQuad(CubeFace face, Vec3i16 a, Vec3i16 b, Vec3i16 c, Vec3i16 d) {
 
@@ -21,30 +24,68 @@ public record FaceQuad(CubeFace face, Vec3i16 a, Vec3i16 b, Vec3i16 c, Vec3i16 d
         };
     }
 
-    /** Twice the signed area vector of triangle (a, b, c). */
-    public Vec3i16 normal1() {
-        return b.sub(a).cross(c.sub(a));
+    /** Twice the area vector of triangle {@code (vertex(i), vertex(j), vertex(k))}. */
+    public Vec3i16 triangleNormal(int i, int j, int k) {
+        Vec3i16 p = vertex(i);
+        return vertex(j).sub(p).cross(vertex(k).sub(p));
     }
 
-    /** Twice the signed area vector of triangle (a, c, d). */
+    /**
+     * Index of the vertex the split diagonal starts at: {@code 0} splits along
+     * {@code a–c} (triangles {@code a,b,c} and {@code a,c,d}), {@code 1} splits along
+     * {@code b–d} (triangles {@code b,c,d} and {@code b,d,a}).
+     *
+     * <p>The four corners span a tetrahedron; each corner's distance from the plane of
+     * the other three is {@code 3·volume / area(opposite triangle)}. The volume is
+     * shared, so the farthest corner is the one with the <em>smallest</em> opposite
+     * triangle, and the diagonal is the one that contains it. Planar faces and exact
+     * ties keep {@code 0}.
+     */
+    public int splitStart() {
+        if (isPlanar()) {
+            return 0;
+        }
+        long oppositeA = triangleNormal(1, 2, 3).lengthSquared(); // b, c, d
+        long oppositeB = triangleNormal(0, 2, 3).lengthSquared(); // a, c, d
+        long oppositeC = triangleNormal(0, 1, 3).lengthSquared(); // a, b, d
+        long oppositeD = triangleNormal(0, 1, 2).lengthSquared(); // a, b, c
+        return Math.min(oppositeA, oppositeC) <= Math.min(oppositeB, oppositeD) ? 0 : 1;
+    }
+
+    /** Twice the area vector of the first triangle of the split: {@code (s, s+1, s+2)}. */
+    public Vec3i16 normal1() {
+        int s = splitStart();
+        return triangleNormal(s, s + 1, s + 2);
+    }
+
+    /** Twice the area vector of the second triangle of the split: {@code (s, s+2, s+3)}. */
     public Vec3i16 normal2() {
-        return c.sub(a).cross(d.sub(a));
+        int s = splitStart();
+        return triangleNormal(s, s + 2, s + 3);
+    }
+
+    /** Twice the face's area vector — the sum over its two triangles, independent of the split. */
+    public Vec3i16 areaNormal() {
+        return triangleNormal(0, 1, 2).add(triangleNormal(0, 2, 3));
     }
 
     /** Whether all four vertices lie in one plane. */
     public boolean isPlanar() {
-        // Planar iff d lies in the plane of (a, b, c) — or the first triangle is
-        // itself degenerate, in which case the second triangle defines the plane.
-        Vec3i16 n = normal1();
+        // Planar iff d lies in the plane of (a, b, c) — or (a, b, c) are collinear, in
+        // which case any fourth point is coplanar with them.
+        Vec3i16 n = triangleNormal(0, 1, 2);
         if (n.isZero()) {
             return true;
         }
         return n.dot(d.sub(a)) == 0;
     }
 
-    /** Whether the face has collapsed to a line or point (both triangles have zero area). */
+    /**
+     * Whether the face encloses no area: collapsed to a line or point, or folded back
+     * onto itself so its two triangles cancel (two opposite corners coincide).
+     */
     public boolean isDegenerate() {
-        return normal1().isZero() && normal2().isZero();
+        return areaNormal().isZero();
     }
 
     /** Whether the face is a rectangle with all vertices on the same coordinate of its axis. */

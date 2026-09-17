@@ -140,12 +140,17 @@ public final class ShapeVoxelizer {
         List<double[]> out = new ArrayList<>(12);
         for (CubeFace face : CubeFace.values()) {
             FaceQuad q = shape.face(face);
-            // Contract: split along corner(0)–corner(2).
+            if (q.isDegenerate()) {
+                continue;
+            }
+            // Contract 5: split along the diagonal starting at splitStart() — the same
+            // two triangles the renderer draws.
+            int s = q.splitStart();
             if (!q.normal1().isZero()) {
-                out.add(tri(q.a(), q.b(), q.c()));
+                out.add(tri(q.vertex(s), q.vertex(s + 1), q.vertex(s + 2)));
             }
             if (!q.normal2().isZero()) {
-                out.add(tri(q.a(), q.c(), q.d()));
+                out.add(tri(q.vertex(s), q.vertex(s + 2), q.vertex(s + 3)));
             }
         }
         return out.toArray(new double[0][]);

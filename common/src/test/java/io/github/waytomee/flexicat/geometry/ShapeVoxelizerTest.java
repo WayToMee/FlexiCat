@@ -34,6 +34,44 @@ class ShapeVoxelizerTest {
                 .with(Corner.UP_EAST_NORTH, Axis.Y, 0);
     }
 
+    /** Height of the top-most filled cell (0..R) per (x, z) column. */
+    private static int[][] tops(List<ShapeVoxelizer.Box> boxes) {
+        boolean[] cells = raster(boxes);
+        int[][] top = new int[R][R];
+        for (int z = 0; z < R; z++) {
+            for (int x = 0; x < R; x++) {
+                for (int y = 0; y < R; y++) {
+                    if (cells[(z * R + y) * R + x]) {
+                        top[x][z] = y + 1;
+                    }
+                }
+            }
+        }
+        return top;
+    }
+
+    @Test
+    void oneLoweredCornerIsMirrorSymmetricAndFoldsThroughTheCorner() {
+        CornerShape east = CornerShape.cube().move(Corner.UP_EAST_SOUTH, Axis.Y, -8);
+        CornerShape west = CornerShape.cube().move(Corner.UP_WEST_SOUTH, Axis.Y, -8);
+        int[][] topE = tops(ShapeVoxelizer.voxelize(east));
+        int[][] topW = tops(ShapeVoxelizer.voxelize(west));
+        for (int z = 0; z < R; z++) {
+            for (int x = 0; x < R; x++) {
+                assertEquals(topW[R - 1 - x][z], topE[x][z], "column " + x + "," + z + " must mirror");
+            }
+        }
+        // The fold runs along the diagonal through the lowered corner (16,·,16)→(0,·,0),
+        // so the middle of the top sits on it at ~12/16 — not flat at 16 as with a fixed
+        // diagonal through the two untouched corners.
+        assertEquals(8, topE[15][15]);
+        assertEquals(16, topE[0][0]);
+        assertTrue(topE[7][7] <= 12 && topE[8][8] <= 12, "centre " + topE[7][7] + "/" + topE[8][8]);
+        // Mesh and voxeliser split the same way: the lowered corner lies on the emitted diagonal.
+        ShapeMesh.Face up = ShapeMesh.build(east).stream().filter(f -> f.face() == CubeFace.UP).findFirst().orElseThrow();
+        assertTrue(up.v0().y() == 0.5f || up.v2().y() == 0.5f);
+    }
+
     @Test
     void cubeIsOneFullBox() {
         List<ShapeVoxelizer.Box> boxes = ShapeVoxelizer.voxelize(CornerShape.cube());

@@ -45,6 +45,11 @@ public record Vec3i16(int x, int y, int z) {
         return x == 0 && y == 0 && z == 0;
     }
 
+    /** Squared length as a {@code long} (cross products of grid vectors can exceed {@code int} when squared). */
+    public long lengthSquared() {
+        return dot(this);
+    }
+
     /** Position in block units (1.0 = one full block). */
     public double xBlocks() {
         return x / (double) CornerShape.GRID;

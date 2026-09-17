@@ -13,8 +13,10 @@ import java.util.List;
  * <p>Rules:
  * <ul>
  *   <li>Vertices are emitted in the face's fixed corner order ({@link CubeFace#corner}),
- *       so a quad renderer that splits quads along the first–third vertex diagonal
- *       reproduces the triangulation contract from {@code DESIGN.md}.</li>
+ *       rotated to start at {@link FaceQuad#splitStart()}, so {@code v0–v2} is the
+ *       diagonal the surface folds along. Minecraft's quad index buffer triangulates
+ *       every quad as {@code 0-1-2 / 0-2-3}, which reproduces the triangulation contract
+ *       from {@code DESIGN.md} exactly — the same triangles the voxeliser uses.</li>
  *   <li>Degenerate faces (collapsed to a line or point) are skipped, never emitted.</li>
  *   <li>Texture coordinates use the vanilla cube projection of each face, so a
  *       moved corner slides the texture with it instead of stretching the whole face.</li>
@@ -31,7 +33,8 @@ public final class ShapeMesh {
     /**
      * One renderable face.
      *
-     * @param face          the cube face this quad descends from (defines its vertex order)
+     * @param face          the cube face this quad descends from (defines its vertex order; the
+     *                      order is rotated so {@code v0–v2} is the split diagonal)
      * @param lightFace     the face whose direction best matches the quad's actual normal
      * @param fullCubeFace  {@code true} if the quad is exactly the undeformed cube face and
      *                      may be culled against an opaque neighbour like a vanilla block face
@@ -59,9 +62,10 @@ public final class ShapeMesh {
             if (quad.isDegenerate()) {
                 continue;
             }
+            int start = quad.splitStart();
             Vertex[] vs = new Vertex[4];
             for (int i = 0; i < 4; i++) {
-                Vec3i16 p = quad.vertex(i);
+                Vec3i16 p = quad.vertex(start + i);
                 float[] uv = uv(cubeFace, p);
                 vs[i] = new Vertex((float) p.xBlocks(), (float) p.yBlocks(), (float) p.zBlocks(), uv[0], uv[1]);
             }
@@ -94,7 +98,7 @@ public final class ShapeMesh {
      * normal. Falls back to the quad's own face when the normal is ambiguous.
      */
     static CubeFace lightFace(FaceQuad quad) {
-        Vec3i16 n = quad.normal1().add(quad.normal2());
+        Vec3i16 n = quad.areaNormal();
         int ax = Math.abs(n.x());
         int ay = Math.abs(n.y());
         int az = Math.abs(n.z());

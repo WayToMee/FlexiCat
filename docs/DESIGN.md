@@ -25,9 +25,17 @@ These are baked into the geometry core (`common/…/geometry`) and into saved da
    remains compatible in both directions.
 4. **Face order.** Each face lists its four corners in a fixed counter-clockwise order (seen from
    outside the undeformed cube). Rendering, ray casting and culling depend on it.
-5. **Triangulation.** A non-planar quad is split along the diagonal between the face's first and
-   third corner. Eight points alone do not define a curved surface; this rule makes the surface
-   deterministic across saving, copying and mirroring.
+5. **Triangulation.** A non-planar quad is split along the diagonal that passes through the
+   corner lying **farthest from the plane of the other three** — equivalently, the corner whose
+   opposite triangle has the smallest area (`FaceQuad.splitStart`). Ties (planar faces, symmetric
+   saddles) use the first–third diagonal. Eight points alone do not define a curved surface; this
+   rule makes the surface deterministic across saving, copying and mirroring, because it depends
+   only on the positions. Consequence: lowering any single corner folds its faces *through* that
+   corner, so the whole top reads as one slope. *Changed after in-game testing (stage 6 fix):
+   the original rule was a fixed first–third diagonal, which folded through the moved corner
+   for only two of a face's four corners — for the other two, the triangle formed by the three
+   unmoved corners stayed flat and a crease ran across the middle of the block. Saved shapes are
+   unaffected (only positions are stored); their surfaces re-triangulate on load.*
 6. **Serialised form.** 24 bytes, corner-major, axis-minor. Loader codecs wrap this.
 
 ## What v1 is
@@ -60,8 +68,11 @@ These are baked into the geometry core (`common/…/geometry`) and into saved da
 ## Rendering (stage 4)
 
 - `geometry/ShapeMesh` (common, pure) turns a `CornerShape` into faces: four vertices in block
-  units plus UVs in 0–16 model units, in the face's fixed corner order (contract 4), so the
-  renderer's quad split reproduces contract 5. Degenerate faces are skipped.
+  units plus UVs in 0–16 model units, in the face's fixed corner order (contract 4) rotated so
+  that the emitted `v0–v2` is the split diagonal (contract 5). Minecraft's quad index buffer
+  triangulates every quad as `0-1-2 / 0-2-3`, so the GPU draws exactly the contract triangles —
+  the same ones the voxeliser (stage 5) uses for collision and picking. Degenerate faces
+  (zero enclosed area, including two opposite corners coinciding) are skipped.
 - Texture: the vanilla full-cube projection of each face, evaluated at the moved corner
   (`DOWN u=x,v=16-z · UP u=x,v=z · NORTH u=16-x,v=16-y · SOUTH u=x,v=16-y · WEST u=z,v=16-y ·
   EAST u=16-z,v=16-y`). A moved corner slides the texture with it; nothing is stretched over the

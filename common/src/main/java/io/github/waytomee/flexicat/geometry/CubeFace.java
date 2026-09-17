@@ -4,8 +4,9 @@ package io.github.waytomee.flexicat.geometry;
  * One of the six faces of a shape cell, with its four corners listed in a fixed
  * counter-clockwise order as seen from outside the (undeformed) cube.
  *
- * <p>The order is part of the shape's contract: rendering, ray casting and the
- * triangulation diagonal all rely on it, so it must not change between versions.
+ * <p>The order is part of the shape's contract: rendering, ray casting and the two
+ * candidate triangulation diagonals ({@code 0–2} and {@code 1–3}, see
+ * {@link FaceQuad#splitStart()}) all rely on it, so it must not change between versions.
  */
 public enum CubeFace {
     DOWN(Axis.Y, false,

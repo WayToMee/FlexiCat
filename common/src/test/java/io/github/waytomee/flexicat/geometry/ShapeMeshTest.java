@@ -13,12 +13,82 @@ class ShapeMeshTest {
         return faces.stream().filter(x -> x.face() == f).findFirst();
     }
 
-    /** Twice the signed area normal of the quad's first triangle, from emitted vertices. */
-    private static float[] normal(ShapeMesh.Face f) {
-        ShapeMesh.Vertex a = f.v0(), b = f.v1(), c = f.v2();
+    /** Twice the signed area normal of triangle (a, b, c), from emitted vertices. */
+    private static float[] triangleNormal(ShapeMesh.Vertex a, ShapeMesh.Vertex b, ShapeMesh.Vertex c) {
         float ux = b.x() - a.x(), uy = b.y() - a.y(), uz = b.z() - a.z();
         float vx = c.x() - a.x(), vy = c.y() - a.y(), vz = c.z() - a.z();
         return new float[] {uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx};
+    }
+
+    /** Twice the signed area normal of the quad's first triangle (v0, v1, v2). */
+    private static float[] normal(ShapeMesh.Face f) {
+        return triangleNormal(f.v0(), f.v1(), f.v2());
+    }
+
+    @Test
+    void oneLoweredTopCornerFoldsTheTopThroughIt() {
+        // Whichever top corner is lowered, the top must read as one full slope: the fold
+        // (the v0–v2 diagonal Minecraft splits along) passes through the moved corner and
+        // both triangles tilt. With a fixed first–third diagonal only two of the four
+        // corners behaved that way; the other two left half the face flat.
+        for (Corner moved : CubeFace.UP.corners()) {
+            CornerShape shape = CornerShape.cube().move(moved, Axis.Y, -8);
+            ShapeMesh.Face up = face(ShapeMesh.build(shape), CubeFace.UP).orElseThrow();
+            assertTrue(up.v0().y() == 0.5f || up.v2().y() == 0.5f, moved + ": fold must pass through the moved corner");
+            float[] n1 = triangleNormal(up.v0(), up.v1(), up.v2());
+            float[] n2 = triangleNormal(up.v0(), up.v2(), up.v3());
+            assertTrue(n1[1] > 0 && n2[1] > 0, moved + ": winding must stay outward");
+            assertTrue(n1[0] != 0 || n1[2] != 0, moved + ": first triangle must slope");
+            assertTrue(n2[0] != 0 || n2[2] != 0, moved + ": second triangle must slope");
+            assertEquals(CubeFace.UP, up.lightFace());
+            // The vertex order is a rotation of the face's corner order, never a reshuffle.
+            int start = shape.face(CubeFace.UP).splitStart();
+            for (int i = 0; i < 4; i++) {
+                Vec3i16 p = shape.face(CubeFace.UP).vertex(start + i);
+                assertEquals((float) p.xBlocks(), up.vertex(i).x(), 1e-6, moved + ": vertex " + i);
+                assertEquals((float) p.zBlocks(), up.vertex(i).z(), 1e-6, moved + ": vertex " + i);
+            }
+        }
+    }
+
+    @Test
+    void planarFacesKeepTheFirstThirdDiagonal() {
+        CornerShape ramp = CornerShape.cube()
+                .move(Corner.UP_EAST_SOUTH, Axis.Y, -12)
+                .move(Corner.UP_EAST_NORTH, Axis.Y, -12);
+        for (ShapeMesh.Face f : ShapeMesh.build(ramp)) {
+            FaceQuad quad = ramp.face(f.face());
+            assertTrue(quad.isPlanar(), f.face() + " should be planar");
+            assertEquals(0, quad.splitStart());
+            assertEquals((float) quad.a().xBlocks(), f.v0().x(), 1e-6);
+            assertEquals((float) quad.a().yBlocks(), f.v0().y(), 1e-6);
+            assertEquals((float) quad.a().zBlocks(), f.v0().z(), 1e-6);
+        }
+    }
+
+    @Test
+    void splitChoiceIsMirrorConsistent() {
+        // Lowering the east or the west south top corner are mirror images; the chosen
+        // diagonal must mirror too (fold through the moved corner in both cases).
+        FaceQuad east = CornerShape.cube().move(Corner.UP_EAST_SOUTH, Axis.Y, -8).face(CubeFace.UP);
+        FaceQuad west = CornerShape.cube().move(Corner.UP_WEST_SOUTH, Axis.Y, -8).face(CubeFace.UP);
+        // UP order: WEST_SOUTH(0), EAST_SOUTH(1), EAST_NORTH(2), WEST_NORTH(3)
+        assertEquals(1, east.splitStart(), "east-south is corner 1 → b–d diagonal");
+        assertEquals(0, west.splitStart(), "west-south is corner 0 → a–c diagonal");
+        assertFalse(east.normal1().isZero());
+        assertFalse(east.normal2().isZero());
+        assertNotEquals(0, east.normal1().x() + east.normal1().z(), "no horizontal triangle left");
+        assertNotEquals(0, east.normal2().x() + east.normal2().z(), "no horizontal triangle left");
+    }
+
+    @Test
+    void coincidingOppositeCornersMakeTheFaceDegenerate() {
+        // UP_EAST_SOUTH moved onto UP_WEST_NORTH: the top folds back onto itself and
+        // encloses nothing — it must vanish, not render as a one-sided fin.
+        CornerShape shape = CornerShape.cube().with(Corner.UP_EAST_SOUTH, new Vec3i16(0, 16, 0));
+        FaceQuad up = shape.face(CubeFace.UP);
+        assertTrue(up.isDegenerate());
+        assertTrue(face(ShapeMesh.build(shape), CubeFace.UP).isEmpty());
     }
 
     @Test
