@@ -17,8 +17,8 @@ import java.util.Optional;
  */
 public final class HandlePicker {
 
-    /** Handle half-size used by the client overlay: 1.5 grid units. */
-    public static final double DEFAULT_HALF_SIZE = 1.5 / CornerShape.GRID;
+    /** Default handle half-size (one grid unit); the client config can change it. */
+    public static final double DEFAULT_HALF_SIZE = 1.0 / CornerShape.GRID;
 
     private static final double EPSILON = 1.0e-9;
 

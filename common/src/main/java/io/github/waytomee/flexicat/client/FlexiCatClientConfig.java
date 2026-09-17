@@ -14,7 +14,7 @@ public final class FlexiCatClientConfig {
 
     public static final int DEFAULT_REPEAT_DELAY_TICKS = 6;
     public static final int DEFAULT_REPEAT_INTERVAL_TICKS = 2;
-    public static final double DEFAULT_HANDLE_SIZE = 1.5;
+    public static final double DEFAULT_HANDLE_SIZE = 1.0;
     public static final boolean DEFAULT_MOVE_SOUNDS = true;
     public static final boolean DEFAULT_SHOW_HUD = true;
 

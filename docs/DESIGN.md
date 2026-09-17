@@ -206,7 +206,8 @@ after which it looks like that block — the copycat idea.
   sound.
 - **Client config** (`client/FlexiCatClientConfig` in common exposes suppliers; the NeoForge
   module binds them to a `ModConfigSpec`, file `config/flexicat-client.toml`, editable from
-  Mods → FlexiCat → Config): key repeat delay and interval (ticks), handle size (1/16 units),
+  Mods → FlexiCat → Config): key repeat delay and interval (ticks), handle size (1/16 units,
+  default 1 after in-game testing — 1.5 felt too large),
   editing sounds on/off, HUD hint on/off. Values are read live. Nothing gameplay-relevant is
   configurable on the client; there is no server config yet.
 - **Localisation.** English and Russian for every key binding, corner name, HUD message,
