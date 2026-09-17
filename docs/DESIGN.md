@@ -69,9 +69,42 @@ These are baked into the geometry core (`common/…/geometry`) and into saved da
   placeholder model (kept for texture, particle sprite and item rendering) and builds quads at
   chunk-mesh time. The common block entity re-meshes the chunk section on sync
   (`onShapeSyncedOnClient`). Fabric will need the same three pieces with its own APIs.
-- Outline and collision (`FlexiCatBlock.getShape/getCollisionShape`) are the bounding box of the
-  eight corners, padded to 1/16 when flat so a plate stays targetable. Per-face collision and ray
-  casting are stage 5.
+- Outline and collision were the corners' bounding box until stage 5 (see below).
+
+## Collision and picking (stage 5)
+
+Minecraft's collision, block picking (ray cast) and support checks all consume a `VoxelShape`,
+which can only be a union of axis-aligned boxes — there is no hook for exact triangle collision
+without mixins. FlexiCat therefore approximates the deformed hull with boxes:
+
+- `geometry/ShapeVoxelizer` (common, pure). The twelve contract triangles (contract 5) form a
+  closed surface even for non-planar faces and concave shapes. Each of the 16³ cells inside the
+  corner bounds is classified by its **centre** with a ray-parity test (odd number of triangle
+  crossings = inside; the ray direction is deliberately irrational-ish so it never grazes an
+  integer vertex or edge). Filled cells are merged greedily (x, then y, then z) into boxes. The
+  result is deterministic, never fatter than the true shape and at most one cell thinner, so
+  pulling a corner in never *adds* collision, and a slope voxelises into a monotone staircase.
+- `block/FlexiCatShapes` (common) turns those boxes into a `VoxelShape` (`Shapes.or(...).optimize()`),
+  with a full cube shortcut. A shape with no volume (flat plate, sliver) falls back to its bounding
+  box padded to 1/16 so it can still be aimed at and stood on. Results are cached process-wide
+  (LRU, keyed by `CornerShape`) on top of the per-block-entity cache, because many blocks share a
+  shape.
+- `FlexiCatBlock.getShape/getCollisionShape` return that shape. The block **must** be registered
+  with `dynamicShape()`: otherwise vanilla pre-computes the collision shape per block state at
+  startup — with no block entity in reach — and every FlexiCat block would collide as a full cube
+  (`isCollisionShapeFullBlock`, `largeCollisionShape`, `getCollisionShape(level,pos)` are all
+  served from that cache).
+- Picking: vanilla ray casts against the same voxel shape, so the aim lands on the sloped
+  staircase (within one cell of the real surface) instead of the bounding box. The **outline**,
+  however, would show that staircase; the loader's client module (`RenderHighlightEvent.Block` on
+  NeoForge) cancels the vanilla outline for non-cube FlexiCat blocks and draws the twelve true
+  edges (`CornerHandleRenderer.renderOutline`) in vanilla's outline colour. What is targeted is
+  decided by the voxel shape; what is shown is the real geometry.
+- Corner handles (`HandlePicker`) are unaffected: they are picked against the live corner
+  positions, not against the voxel shape.
+- Known limits: one-cell staircase on slopes (players "step" up ramps rather than slide — the
+  same behaviour as stairs); flat plates collide as 1/16 slabs. Fabric needs its own outline hook;
+  the geometry and `VoxelShape` construction are shared.
 
 ## Candidates for v1, not yet decided
 

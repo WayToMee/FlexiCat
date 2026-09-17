@@ -1,14 +1,18 @@
 package io.github.waytomee.flexicat.neoforge.client;
 
 import io.github.waytomee.flexicat.FlexiCat;
+import io.github.waytomee.flexicat.block.FlexiCatBlock;
 import io.github.waytomee.flexicat.client.CornerEditClient;
+import io.github.waytomee.flexicat.client.CornerHandleRenderer;
 import io.github.waytomee.flexicat.client.FlexiCatKeys;
 import io.github.waytomee.flexicat.platform.LoaderHooks;
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.BlockPos;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import io.github.waytomee.flexicat.neoforge.FlexiCatRegistration;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.block.BlockModelShaper;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.client.resources.model.ModelResourceLocation;
@@ -16,13 +20,15 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.ModelEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
+import net.neoforged.neoforge.client.event.RenderHighlightEvent;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 /**
- * Client-only entry point: installs the client hooks, registers key mappings and
- * drives the editing session from the tick and world-render events.
+ * Client-only entry point: installs the client hooks, registers key mappings,
+ * drives the editing session from the tick and world-render events and replaces
+ * the block outline of FlexiCat blocks with the shape's true edges.
  */
 @Mod(value = FlexiCat.MOD_ID, dist = Dist.CLIENT)
 public final class FlexiCatNeoForgeClient {
@@ -35,6 +41,7 @@ public final class FlexiCatNeoForgeClient {
         modBus.addListener(FlexiCatNeoForgeClient::onModifyBakingResult);
         NeoForge.EVENT_BUS.addListener(FlexiCatNeoForgeClient::onClientTick);
         NeoForge.EVENT_BUS.addListener(FlexiCatNeoForgeClient::onRenderLevelStage);
+        NeoForge.EVENT_BUS.addListener(FlexiCatNeoForgeClient::onRenderBlockHighlight);
     }
 
     private static void onRegisterKeyMappings(RegisterKeyMappingsEvent event) {
@@ -66,5 +73,30 @@ public final class FlexiCatNeoForgeClient {
             return;
         }
         CornerEditClient.render(event.getPoseStack(), event.getCamera().getPosition());
+    }
+
+    /** Vanilla's outline colour: black at 40% alpha. */
+    private static final int OUTLINE_COLOR = 0x66000000;
+
+    /**
+     * Vanilla outlines the voxel shape, which for a deformed block is a staircase of
+     * small boxes. Draw the twelve real edges instead; the voxel shape still decides
+     * <em>what</em> is targeted, this only changes what the player sees.
+     */
+    private static void onRenderBlockHighlight(RenderHighlightEvent.Block event) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null) {
+            return;
+        }
+        BlockPos pos = event.getTarget().getBlockPos();
+        FlexiCatBlock.entityAt(mc.level, pos).ifPresent(be -> {
+            if (be.shape().isCube()) {
+                return; // the default outline is already exact
+            }
+            CornerHandleRenderer.renderOutline(event.getPoseStack(),
+                    event.getMultiBufferSource().getBuffer(RenderType.lines()),
+                    event.getCamera().getPosition(), pos, be.shape(), OUTLINE_COLOR);
+            event.setCanceled(true);
+        });
     }
 }

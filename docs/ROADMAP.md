@@ -12,7 +12,9 @@ Small stages, each reviewable on its own.
 - [x] **4.** Rendering: mesh built from the corner positions (planar-safe triangulation), vanilla
       cube texture projection per face, culling of untouched faces, directional shading by real
       normal. Outline/collision use the corners' bounding box for now.
-- [ ] **5.** Collision + ray casting derived from the actual faces (not just the bounding box).
+- [x] **5.** Collision + ray casting derived from the actual faces: the enclosed volume is
+      voxelised on the 1/16 grid into a `VoxelShape` (collision, picking, support), and the block
+      outline shows the shape's true twelve edges instead of the voxel staircase.
 - [ ] **6.** Material filling (copycat behaviour).
 - [ ] **7.** Polish: group movement, shape copy, sounds/particles, config, localisation.
 - [ ] **F.** Fabric module.

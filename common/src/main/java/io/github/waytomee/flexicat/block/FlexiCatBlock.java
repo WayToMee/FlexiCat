@@ -22,8 +22,9 @@ import java.util.function.Supplier;
  * placed block differ from another lives in its {@link FlexiCatBlockEntity}.
  *
  * <p>The visual mesh is produced by the loader's client module from the block
- * entity's shape (stage 4). Outline and collision currently use the axis-aligned
- * bounds of the corners; exact per-face collision and ray casting are stage 5.
+ * entity's shape (stage 4). Outline, collision and ray casting use a voxel
+ * approximation of the actual faces (stage 5, {@link FlexiCatShapes}); the loader's
+ * client module draws the true edges as the hit outline.
  */
 public class FlexiCatBlock extends BaseEntityBlock {
 
@@ -37,6 +38,9 @@ public class FlexiCatBlock extends BaseEntityBlock {
     /**
      * Properties shared by every loader. Occlusion is off because the final shape
      * is rarely a full cube; light and vision are decided by the shape later.
+     * {@code dynamicShape} is essential: without it vanilla caches the collision
+     * shape per block state at startup (with no block entity in reach) and would
+     * treat every FlexiCat block as a full cube for collision.
      */
     public static Properties defaultProperties() {
         return Properties.of()
@@ -44,6 +48,7 @@ public class FlexiCatBlock extends BaseEntityBlock {
                 .sound(SoundType.STONE)
                 .strength(1.5F, 6.0F)
                 .noOcclusion()
+                .dynamicShape()
                 .isViewBlocking((state, level, pos) -> false)
                 .isSuffocating((state, level, pos) -> false);
     }
@@ -70,7 +75,7 @@ public class FlexiCatBlock extends BaseEntityBlock {
 
     @Override
     protected VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
-        return entityAt(level, pos).map(FlexiCatBlockEntity::boundsShape).orElse(Shapes.block());
+        return entityAt(level, pos).map(FlexiCatBlockEntity::voxelShape).orElse(Shapes.block());
     }
 
     @Override

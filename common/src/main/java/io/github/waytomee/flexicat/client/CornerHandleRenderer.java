@@ -18,6 +18,10 @@ import org.jetbrains.annotations.Nullable;
  * and a small box at each of the eight corners, with the selected corner in a
  * highlight colour. Everything is derived from {@link CornerShape}; the
  * placeholder block model is not consulted.
+ *
+ * <p>{@link #renderOutline} draws only the twelve edges in vanilla's hit-outline
+ * style. The loader's client module uses it to replace the default block outline,
+ * which would otherwise show the stepped boxes of the voxelised collision shape.
  */
 public final class CornerHandleRenderer {
 
@@ -35,14 +39,7 @@ public final class CornerHandleRenderer {
         PoseStack.Pose pose = poseStack.last();
         VertexConsumer lines = buffers.getBuffer(FlexiCatRenderTypes.OVERLAY_LINES);
 
-        // Edges: each corner to its neighbour across every axis, each edge once.
-        for (Corner corner : Corner.values()) {
-            for (Axis axis : Axis.values()) {
-                if (!corner.isMax(axis)) {
-                    line(pose, lines, shape.position(corner), shape.position(corner.across(axis)), EDGE_COLOR);
-                }
-            }
-        }
+        edges(pose, lines, shape, EDGE_COLOR);
 
         // Handles: boxes centred on the corner positions.
         double h = HandlePicker.DEFAULT_HALF_SIZE;
@@ -59,6 +56,30 @@ public final class CornerHandleRenderer {
 
         buffers.endBatch(FlexiCatRenderTypes.OVERLAY_LINES);
         poseStack.popPose();
+    }
+
+    /**
+     * The true edges of the shape as a block-selection outline (vanilla draws
+     * black at 40% alpha). {@code consumer} should be the {@code RenderType.lines()}
+     * buffer the game uses for its own outline.
+     */
+    public static void renderOutline(PoseStack poseStack, VertexConsumer consumer, Vec3 camera,
+                                     BlockPos pos, CornerShape shape, int color) {
+        poseStack.pushPose();
+        poseStack.translate(pos.getX() - camera.x, pos.getY() - camera.y, pos.getZ() - camera.z);
+        edges(poseStack.last(), consumer, shape, color);
+        poseStack.popPose();
+    }
+
+    /** Each corner to its neighbour across every axis, each edge once. */
+    private static void edges(PoseStack.Pose pose, VertexConsumer consumer, CornerShape shape, int color) {
+        for (Corner corner : Corner.values()) {
+            for (Axis axis : Axis.values()) {
+                if (!corner.isMax(axis)) {
+                    line(pose, consumer, shape.position(corner), shape.position(corner.across(axis)), color);
+                }
+            }
+        }
     }
 
     private static void line(PoseStack.Pose pose, VertexConsumer consumer, Vec3i16 from, Vec3i16 to, int color) {
