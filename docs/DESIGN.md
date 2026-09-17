@@ -121,11 +121,46 @@ without mixins. FlexiCat therefore approximates the deformed hull with boxes:
   outline hook and its own use-key hook for handle selection; the geometry and `VoxelShape`
   construction are shared.
 
+## Material filling (stage 6)
+
+A FlexiCat block starts as a placeholder-textured cube and can be *filled* with a material,
+after which it looks like that block — the copycat idea.
+
+- **Interaction.** Right-click an unfilled block with a block item → the block borrows that
+  block's look and one item is consumed (not in creative). Sneak + right-click with an empty hand
+  takes the material back out (returned to the inventory). Breaking the block drops the material
+  alongside the block's own loot. The corner tool is unaffected: `useItemOn` passes anything that
+  is not a fillable block item on to the default interaction, so the tool's `useOn` still runs.
+- **What may fill it** (`block/FlexiCatMaterials`, common): a block that renders as a model, has
+  no block entity, collides as a full cube and is not a FlexiCat block. Only the item's block's
+  *default* state is stored — orientation is not kept (a log fills as an upright log). Stairs,
+  slabs, fences, chests, invisible blocks and fluids are refused. Tinted blocks (grass, leaves)
+  are fine.
+- **Storage.** `FlexiCatBlockEntity` keeps a nullable `BlockState material`, saved under NBT key
+  `Material` in `NbtUtils.writeBlockState` format. `setMaterial` is the write path (dirties the
+  chunk, syncs to clients). A material whose block no longer exists reads back as empty. Shape
+  and material are independent: filling does not change the shape, editing does not change the
+  material.
+- **Rendering (NeoForge).** The block entity publishes the material as `ModelData`
+  (`FlexiCatModelProperties.MATERIAL`). `FlexiCatBakedModel` then:
+  - for an *undeformed* filled block returns the material's own baked model quads unchanged, so
+    multi-part vanilla models stay exact;
+  - for a *deformed* filled block samples, per cube face, the material model's quad for that face
+    (culled quads first, then unculled quads pointing that way) and applies its sprite and tint
+    index to the FlexiCat mesh — whose UVs already follow the vanilla cube projection (stage 4),
+    so the texture is placed exactly where it would be on the undeformed cube;
+  - takes render layers, ambient occlusion (for cubes) and the particle sprite from the material.
+  A block colour handler forwards tint queries to the material's colour handler, so biome
+  colouring keeps working. Materials that only look right with a non-cube model or custom
+  renderer are outside the acceptance rule above.
+- **Sounds.** Place/remove play the material's own place/break sounds. The block's mining sound
+  stays FlexiCat's for now (polish stage).
+
 ## Candidates for v1, not yet decided
 
 - **Group movement**: move several selected corners with one keystroke. The geometry core already
   supports it (`moveGroup`, clamped as a whole so the group is not distorted).
-- **Copy shape without replacing material**.
+- **Copy shape without replacing material**. (Materials exist since stage 6.)
 - Move keys. Stage 3 ships **arrow keys** (up/down = world Y, left/right = relative to the
   player's facing) plus **Page Up / Page Down** (away / towards), all rebindable in the vanilla
   controls screen under "FlexiCat". WASD was avoided because it conflicts with walking around

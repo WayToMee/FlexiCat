@@ -17,6 +17,8 @@ Small stages, each reviewable on its own.
       voxelised on the 1/16 grid into a `VoxelShape` (picking, support) and on a 4/16 grid for
       entity collision (walkable slopes), and the block outline shows the shape's true twelve
       edges instead of the voxel staircase.
-- [ ] **6.** Material filling (copycat behaviour).
+- [x] **6.** Material filling (copycat behaviour): right-click with a plain full-cube block item
+      to borrow its textures, tint, render layer and particles; sneak + empty hand takes it back;
+      dropped on break. Deformed faces sample the material's face sprites through the stage-4 UVs.
 - [ ] **7.** Polish: group movement, shape copy, sounds/particles, config, localisation.
 - [ ] **F.** Fabric module.

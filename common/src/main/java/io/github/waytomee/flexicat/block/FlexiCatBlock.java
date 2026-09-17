@@ -1,15 +1,26 @@
 package io.github.waytomee.flexicat.block;
 
 import com.mojang.serialization.MapCodec;
+import io.github.waytomee.flexicat.item.CornerToolItem;
 import net.minecraft.core.BlockPos;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BaseEntityBlock;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.MapColor;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -19,12 +30,19 @@ import java.util.function.Supplier;
 
 /**
  * The FlexiCat block. It has no block-state properties: everything that makes one
- * placed block differ from another lives in its {@link FlexiCatBlockEntity}.
+ * placed block differ from another (shape, material) lives in its
+ * {@link FlexiCatBlockEntity}.
  *
  * <p>The visual mesh is produced by the loader's client module from the block
- * entity's shape (stage 4). Outline, collision and ray casting use a voxel
- * approximation of the actual faces (stage 5, {@link FlexiCatShapes}); the loader's
- * client module draws the true edges as the hit outline.
+ * entity's shape and material (stages 4 and 6). Outline and ray casting use a 1/16
+ * voxel approximation of the actual faces, entity collision a 4/16 one (stage 5,
+ * {@link FlexiCatShapes}); the loader's client module draws the true edges as the
+ * hit outline.
+ *
+ * <p>Filling (stage 6): right-click an empty FlexiCat block with an acceptable block
+ * item (see {@link FlexiCatMaterials}) to make it look like that block; one item is
+ * consumed. Sneak + right-click with an empty hand takes the material back out. The
+ * material is dropped when the block is broken.
  */
 public class FlexiCatBlock extends BaseEntityBlock {
 
@@ -82,6 +100,74 @@ public class FlexiCatBlock extends BaseEntityBlock {
     @Override
     protected VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
         return entityAt(level, pos).map(FlexiCatBlockEntity::collisionShape).orElse(Shapes.block());
+    }
+
+    // --- filling (stage 6) ---------------------------------------------------------
+
+    /**
+     * A block item on an unfilled block fills it. Anything else passes through, so the
+     * corner tool's own {@code useOn} still runs and other items behave as in vanilla.
+     */
+    @Override
+    protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
+                                              Player player, InteractionHand hand, BlockHitResult hitResult) {
+        if (!(stack.getItem() instanceof BlockItem blockItem) || stack.getItem() instanceof CornerToolItem) {
+            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+        }
+        Optional<FlexiCatBlockEntity> target = entityAt(level, pos);
+        if (target.isEmpty() || target.get().material().isPresent()) {
+            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+        }
+        BlockState material = blockItem.getBlock().defaultBlockState();
+        if (!FlexiCatMaterials.isAcceptable(material)) {
+            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+        }
+        if (level.isClientSide()) {
+            return ItemInteractionResult.SUCCESS;
+        }
+        if (target.get().setMaterial(material)) {
+            if (!player.hasInfiniteMaterials()) {
+                stack.shrink(1);
+            }
+            SoundType sound = material.getSoundType();
+            level.playSound(null, pos, sound.getPlaceSound(), SoundSource.BLOCKS,
+                    (sound.getVolume() + 1.0F) / 2.0F, sound.getPitch() * 0.8F);
+        }
+        return ItemInteractionResult.CONSUME;
+    }
+
+    /** Sneak + right-click with an empty hand takes the material back out. */
+    @Override
+    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
+        if (!player.isSecondaryUseActive()) {
+            return InteractionResult.PASS;
+        }
+        Optional<FlexiCatBlockEntity> target = entityAt(level, pos);
+        if (target.isEmpty() || target.get().material().isEmpty()) {
+            return InteractionResult.PASS;
+        }
+        if (level.isClientSide()) {
+            return InteractionResult.SUCCESS;
+        }
+        BlockState material = target.get().material().get();
+        target.get().setMaterial(null);
+        if (!player.hasInfiniteMaterials()) {
+            player.getInventory().placeItemBackInInventory(new ItemStack(material.getBlock()));
+        }
+        SoundType sound = material.getSoundType();
+        level.playSound(null, pos, sound.getBreakSound(), SoundSource.BLOCKS,
+                (sound.getVolume() + 1.0F) / 2.0F, sound.getPitch() * 0.8F);
+        return InteractionResult.CONSUME;
+    }
+
+    /** The material is a separate item: drop it alongside the block's own loot. */
+    @Override
+    protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston) {
+        if (!state.is(newState.getBlock()) && !level.isClientSide()) {
+            entityAt(level, pos).flatMap(FlexiCatBlockEntity::material)
+                    .ifPresent(material -> Block.popResource(level, pos, new ItemStack(material.getBlock())));
+        }
+        super.onRemove(state, level, pos, newState, movedByPiston);
     }
 
     /** The block entity at {@code pos}, if it is a FlexiCat one. */

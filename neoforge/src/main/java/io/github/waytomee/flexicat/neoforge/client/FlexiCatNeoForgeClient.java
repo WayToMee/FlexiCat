@@ -2,6 +2,7 @@ package io.github.waytomee.flexicat.neoforge.client;
 
 import io.github.waytomee.flexicat.FlexiCat;
 import io.github.waytomee.flexicat.block.FlexiCatBlock;
+import io.github.waytomee.flexicat.block.FlexiCatBlockEntity;
 import io.github.waytomee.flexicat.client.CornerEditClient;
 import io.github.waytomee.flexicat.client.CornerHandleRenderer;
 import io.github.waytomee.flexicat.client.FlexiCatKeys;
@@ -21,6 +22,7 @@ import net.minecraft.world.InteractionHand;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.ModelEvent;
+import net.neoforged.neoforge.client.event.RegisterColorHandlersEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.event.RenderHighlightEvent;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
@@ -41,6 +43,7 @@ public final class FlexiCatNeoForgeClient {
 
         modBus.addListener(FlexiCatNeoForgeClient::onRegisterKeyMappings);
         modBus.addListener(FlexiCatNeoForgeClient::onModifyBakingResult);
+        modBus.addListener(FlexiCatNeoForgeClient::onRegisterBlockColors);
         NeoForge.EVENT_BUS.addListener(FlexiCatNeoForgeClient::onClientTick);
         NeoForge.EVENT_BUS.addListener(FlexiCatNeoForgeClient::onInteractionKey);
         NeoForge.EVENT_BUS.addListener(FlexiCatNeoForgeClient::onRenderLevelStage);
@@ -65,6 +68,21 @@ public final class FlexiCatNeoForgeClient {
                 FlexiCat.LOGGER.warn("No baked model found for {}; FlexiCat block will keep its placeholder", location);
             }
         }
+    }
+
+    /**
+     * Tinted materials (grass, leaves, ...) keep their biome colour: the FlexiCat block
+     * forwards colour queries to the material's own colour handler.
+     */
+    private static void onRegisterBlockColors(RegisterColorHandlersEvent.Block event) {
+        event.register((state, level, pos, tintIndex) -> {
+            if (level == null || pos == null) {
+                return -1;
+            }
+            return FlexiCatBlock.entityAt(level, pos).flatMap(FlexiCatBlockEntity::material)
+                    .map(material -> Minecraft.getInstance().getBlockColors().getColor(material, level, pos, tintIndex))
+                    .orElse(-1);
+        }, FlexiCatRegistration.FLEXICAT_BLOCK.get());
     }
 
     private static void onClientTick(ClientTickEvent.Post event) {

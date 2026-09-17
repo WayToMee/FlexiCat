@@ -7,9 +7,9 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.client.model.data.ModelData;
 
 /**
- * NeoForge flavour of the block entity: exposes the shape as {@link ModelData} so
- * the chunk mesher can hand it to {@link io.github.waytomee.flexicat.neoforge.client.FlexiCatBakedModel},
- * and asks for a model-data refresh whenever a new shape arrives from the server.
+ * NeoForge flavour of the block entity: exposes shape and material as {@link ModelData}
+ * so the chunk mesher can hand them to {@link io.github.waytomee.flexicat.neoforge.client.FlexiCatBakedModel},
+ * and asks for a model-data refresh whenever new state arrives from the server.
  */
 public class NeoForgeFlexiCatBlockEntity extends FlexiCatBlockEntity {
 
@@ -19,12 +19,14 @@ public class NeoForgeFlexiCatBlockEntity extends FlexiCatBlockEntity {
 
     @Override
     public ModelData getModelData() {
-        return ModelData.of(FlexiCatModelProperties.SHAPE, shape());
+        ModelData.Builder builder = ModelData.builder().with(FlexiCatModelProperties.SHAPE, shape());
+        material().ifPresent(m -> builder.with(FlexiCatModelProperties.MATERIAL, m));
+        return builder.build();
     }
 
     @Override
-    protected void onShapeSyncedOnClient() {
+    protected void onSyncedOnClient() {
         requestModelDataUpdate();
-        super.onShapeSyncedOnClient();
+        super.onSyncedOnClient();
     }
 }
