@@ -9,6 +9,7 @@ import io.github.waytomee.flexicat.edit.CornerMove;
 import io.github.waytomee.flexicat.edit.CornerSelection;
 import io.github.waytomee.flexicat.edit.HandlePicker;
 import io.github.waytomee.flexicat.edit.HeldKeyRepeater;
+import io.github.waytomee.flexicat.geometry.Axis;
 import io.github.waytomee.flexicat.geometry.Corner;
 import io.github.waytomee.flexicat.geometry.CornerShape;
 import io.github.waytomee.flexicat.geometry.Vec3i16;
@@ -71,6 +72,8 @@ public final class CornerEditClient {
     private static Corner hovered;
     private static boolean copyWasDown;
     private static boolean pasteWasDown;
+    private static boolean mirrorWasDown;
+    private static boolean rotateWasDown;
 
     private CornerEditClient() {
     }
@@ -154,6 +157,8 @@ public final class CornerEditClient {
         } else {
             copyWasDown = false;
             pasteWasDown = false;
+            mirrorWasDown = false;
+            rotateWasDown = false;
         }
         if (editing == null) {
             return;
@@ -219,10 +224,30 @@ public final class CornerEditClient {
         }
     }
 
-    /** Copy/paste fire once per press (edge-triggered); the target is the edited block or the aimed one. */
+    /**
+     * Whole-shape keys fire once per press (edge-triggered); the target is the edited block
+     * or the aimed one. Mirror flips left ↔ right as the player sees it, i.e. across the
+     * horizontal axis perpendicular to the facing (Ctrl/Shift: top ↔ bottom); rotate turns
+     * a quarter clockwise seen from above (Ctrl/Shift: counter-clockwise).
+     */
     private static void handleClipboardKeys(Minecraft mc, LocalPlayer player, ClientLevel level) {
         boolean copy = FlexiCatKeys.COPY_SHAPE.isDown();
         boolean paste = FlexiCatKeys.PASTE_SHAPE.isDown();
+        boolean mirror = FlexiCatKeys.MIRROR_SHAPE.isDown();
+        boolean rotate = FlexiCatKeys.ROTATE_SHAPE.isDown();
+        if (mirror && !mirrorWasDown) {
+            Axis axis = isGroupModifierDown(mc) ? Axis.Y
+                    : player.getDirection().getAxis() == Direction.Axis.Z ? Axis.X : Axis.Z;
+            clipboardTarget(mc, level).ifPresent(pos -> LoaderHooks.sendToServer(
+                    ToolActionPayload.mirror(pos, axis)));
+        }
+        if (rotate && !rotateWasDown) {
+            int turns = isGroupModifierDown(mc) ? 3 : 1;
+            clipboardTarget(mc, level).ifPresent(pos -> LoaderHooks.sendToServer(
+                    ToolActionPayload.rotate(pos, turns)));
+        }
+        mirrorWasDown = mirror;
+        rotateWasDown = rotate;
         if (copy && !copyWasDown) {
             clipboardTarget(mc, level).ifPresent(pos -> LoaderHooks.sendToServer(
                     ToolActionPayload.of(pos, ToolActionPayload.Action.COPY)));

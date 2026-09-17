@@ -24,4 +24,7 @@ Small stages, each reviewable on its own.
       copy/paste stored on the tool (Home / End), material-themed sounds and particles on paste
       and reset plus a quiet click per move, client config (repeat timing, handle size, sounds,
       HUD) with an in-game config screen, English + Russian strings for everything.
+      Follow-up after in-game testing: whole-shape mirror / rotate keys (Insert / Delete),
+      handle size default 1, fix for uneven brightness of blocks in one plane (relight on
+      shape change, real vertex normals).
 - [ ] **F.** Fabric module.

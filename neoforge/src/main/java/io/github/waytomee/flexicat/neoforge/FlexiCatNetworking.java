@@ -14,8 +14,11 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
  */
 public final class FlexiCatNetworking {
 
-    /** Bump when a payload's wire format changes incompatibly. 2: corner index → corner mask (stage 7). */
-    public static final String PROTOCOL_VERSION = "2";
+    /**
+     * Bump when a payload's wire format changes incompatibly. 2: corner index → corner mask
+     * (stage 7). 3: {@code tool_action} gained an argument (mirror axis / rotation turns).
+     */
+    public static final String PROTOCOL_VERSION = "3";
 
     private FlexiCatNetworking() {
     }

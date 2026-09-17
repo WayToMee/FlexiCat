@@ -199,7 +199,17 @@ after which it looks like that block — the copycat idea.
   survives relogging and is shown in the tool's tooltip. Paste replaces only the shape — the
   material stays. Both are intents (`flexicat:tool_action`): the server reads the shape from the
   block or from the tool in the player's hand and never trusts shape data from the client.
-- **Feedback.** Whole-shape changes (paste, sneak-reset) play the material's place sound and a
+- **Mirror / rotate.** Two more whole-shape keys, **Insert** (mirror) and **Delete** (rotate),
+  acting on the same target as copy/paste. Mirror flips the shape left ↔ right as the player
+  sees it (across the horizontal cell axis perpendicular to the facing; with Ctrl/Shift: top ↔
+  bottom). Rotate turns it 90° clockwise about the vertical axis seen from above (with
+  Ctrl/Shift: counter-clockwise). Both are pure `CornerShape` transforms (`mirror(Axis)`,
+  `rotateY(turns)`): a corner keeps its identity and takes the transformed position of the
+  corner that lands on its side, so the cube is invariant and every handle keeps its name.
+  Sent as `flexicat:tool_action` intents with an argument (mirror axis / quarter turns;
+  protocol version `3`); the server applies the transform itself. Combined with copy/paste this
+  gives the four orientations and the mirror image of a shape without moving corners one by one.
+- **Feedback.** Whole-shape changes (paste, mirror, rotate, sneak-reset) play the material's place sound and a
   puff of that material's block particles at the shape's centre (`edit/ShapeFeedback`, server
   side). Single corner moves and handle clicks only play a quiet client-side UI click (rising
   pitch for "up", lower for "down"), so a held key does not rattle. Copy plays the item pickup
@@ -217,7 +227,7 @@ after which it looks like that block — the copycat idea.
 
 - Move keys. Stage 3 ships **arrow keys** (up/down = world Y, left/right = relative to the
   player's facing) plus **Page Up / Page Down** (away / towards), stage 7 adds **Home / End**
-  (copy / paste), all rebindable in the vanilla controls screen under "FlexiCat". WASD was
+  (copy / paste) and **Insert / Delete** (mirror / rotate), all rebindable in the vanilla controls screen under "FlexiCat". WASD was
   avoided because it conflicts with walking around the block while editing. Whether an
   axis-switch key is added is open.
 - A one-time explicit "snap corners to the neighbouring block's corners".

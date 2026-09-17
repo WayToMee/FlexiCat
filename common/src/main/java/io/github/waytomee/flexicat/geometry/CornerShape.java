@@ -188,6 +188,56 @@ public final class CornerShape {
         return new CornerShape(copy);
     }
 
+    // --- whole-shape transforms ---------------------------------------------------
+
+    /**
+     * Mirror the shape across the cell's middle plane perpendicular to {@code axis}.
+     * Corner identities stay on their side of the cell: corner {@code c} takes the
+     * mirrored position of the corner across that axis, so a mirrored cube is still
+     * the cube and every corner keeps its name.
+     */
+    public CornerShape mirror(Axis axis) {
+        int[] copy = new int[BYTES];
+        for (Corner c : Corner.values()) {
+            int src = c.across(axis).index() * 3;
+            int dst = c.index() * 3;
+            for (Axis a : Axis.values()) {
+                int v = data[src + a.ordinal()];
+                copy[dst + a.ordinal()] = a == axis ? MAX - v : v;
+            }
+        }
+        return Arrays.equals(copy, data) ? this : new CornerShape(copy);
+    }
+
+    /**
+     * Rotate the shape by {@code quarterTurns} × 90° clockwise about the cell's vertical
+     * axis as seen from above (Minecraft's {@code Direction.getClockWise}: north → east →
+     * south → west). Negative or large values wrap.
+     */
+    public CornerShape rotateY(int quarterTurns) {
+        int turns = ((quarterTurns % 4) + 4) % 4;
+        CornerShape s = this;
+        for (int i = 0; i < turns; i++) {
+            s = s.rotateYOnce();
+        }
+        return s;
+    }
+
+    private CornerShape rotateYOnce() {
+        // Clockwise from above with north = -Z, east = +X: (x, z) -> (MAX - z, x).
+        // The corner that rested at the north side ends up at the east side, etc.
+        int[] copy = new int[BYTES];
+        for (Corner c : Corner.values()) {
+            Corner dst = Corner.of(!c.isMax(Axis.Z), c.isMax(Axis.Y), c.isMax(Axis.X));
+            int s = c.index() * 3;
+            int d = dst.index() * 3;
+            copy[d] = MAX - data[s + 2];
+            copy[d + 1] = data[s + 1];
+            copy[d + 2] = data[s];
+        }
+        return Arrays.equals(copy, data) ? this : new CornerShape(copy);
+    }
+
     /** Reset one corner to its rest position. */
     public CornerShape reset(Corner corner) {
         return with(corner, new Vec3i16(

@@ -75,15 +75,25 @@ public final class CornerEditServer {
                     player.displayClientMessage(Component.translatable("message.flexicat.tool_empty"), true);
                     yield false;
                 }
-                boolean changed = be.setShape(shape);
-                if (changed) {
-                    ShapeFeedback.shapeChanged(player.serverLevel(), payload.pos(), be);
-                }
-                player.displayClientMessage(Component.translatable(changed
-                        ? "message.flexicat.shape_pasted" : "message.flexicat.shape_same"), true);
-                yield changed;
+                yield applyWholeShape(player, payload.pos(), be, shape, "message.flexicat.shape_pasted");
             }
+            case MIRROR -> applyWholeShape(player, payload.pos(), be,
+                    be.shape().mirror(payload.mirrorAxis()), "message.flexicat.shape_mirrored");
+            case ROTATE -> applyWholeShape(player, payload.pos(), be,
+                    be.shape().rotateY(payload.argument()), "message.flexicat.shape_rotated");
         };
+    }
+
+    /** Replace the whole shape, with feedback; reports "already that shape" when nothing changed. */
+    private static boolean applyWholeShape(ServerPlayer player, BlockPos pos, FlexiCatBlockEntity be,
+                                           CornerShape next, String changedMessage) {
+        boolean changed = be.setShape(next);
+        if (changed) {
+            ShapeFeedback.shapeChanged(player.serverLevel(), pos, be);
+        }
+        player.displayClientMessage(Component.translatable(changed
+                ? changedMessage : "message.flexicat.shape_same"), true);
+        return changed;
     }
 
     /**

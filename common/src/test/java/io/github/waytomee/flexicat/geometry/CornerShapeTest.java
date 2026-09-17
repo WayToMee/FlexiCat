@@ -144,6 +144,58 @@ class CornerShapeTest {
     }
 
     @Test
+    void mirrorIsAnInvolutionAndKeepsTheCube() {
+        assertSame(CornerShape.cube(), CornerShape.cube().mirror(Axis.X));
+        CornerShape s = CornerShape.cube()
+                .move(Corner.UP_EAST_NORTH, Axis.Y, -8)
+                .move(Corner.DOWN_WEST_SOUTH, Axis.X, 3);
+        for (Axis a : Axis.values()) {
+            assertNotEquals(s, s.mirror(a), "mirroring across " + a + " must change this shape");
+            assertEquals(s, s.mirror(a).mirror(a), "mirror twice across " + a + " is identity");
+        }
+    }
+
+    @Test
+    void mirrorMovesTheDisplacementToTheOtherSide() {
+        // lowered north-east top corner, mirrored across X → lowered north-west top corner
+        CornerShape s = CornerShape.cube().move(Corner.UP_EAST_NORTH, Axis.Y, -8);
+        CornerShape m = s.mirror(Axis.X);
+        assertEquals(8, m.position(Corner.UP_WEST_NORTH, Axis.Y));
+        assertEquals(16, m.position(Corner.UP_EAST_NORTH, Axis.Y));
+        assertEquals(1, m.movedCorners());
+        // an X displacement flips sign across X
+        CornerShape t = CornerShape.cube().move(Corner.DOWN_WEST_SOUTH, Axis.X, 3);
+        assertEquals(13, t.mirror(Axis.X).position(Corner.DOWN_EAST_SOUTH, Axis.X));
+    }
+
+    @Test
+    void rotateYFourTimesIsIdentityAndCubeIsInvariant() {
+        assertSame(CornerShape.cube(), CornerShape.cube().rotateY(1));
+        CornerShape s = CornerShape.cube()
+                .move(Corner.UP_EAST_NORTH, Axis.Y, -8)
+                .move(Corner.DOWN_WEST_SOUTH, Axis.X, 3);
+        assertEquals(s, s.rotateY(4));
+        assertEquals(s, s.rotateY(1).rotateY(3));
+        assertEquals(s.rotateY(3), s.rotateY(-1));
+        assertNotEquals(s, s.rotateY(1));
+        assertEquals(s.rotateY(2), s.rotateY(1).rotateY(1));
+    }
+
+    @Test
+    void rotateYClockwiseTurnsNorthToEast() {
+        // north = -Z, east = +X. Seen from above, clockwise: north → east → south → west.
+        CornerShape s = CornerShape.cube().move(Corner.UP_EAST_NORTH, Axis.Y, -8);
+        CornerShape r = s.rotateY(1);
+        assertEquals(8, r.position(Corner.UP_EAST_SOUTH, Axis.Y), "NE corner rotates to SE");
+        assertEquals(1, r.movedCorners());
+        // a +X displacement becomes a +Z displacement
+        CornerShape t = CornerShape.cube().move(Corner.DOWN_WEST_NORTH, Axis.X, 3);
+        CornerShape tr = t.rotateY(1);
+        assertEquals(3, tr.position(Corner.DOWN_EAST_NORTH, Axis.Z), "NW corner rotates to NE, X shift becomes Z shift");
+        assertEquals(16, tr.position(Corner.DOWN_EAST_NORTH, Axis.X));
+    }
+
+    @Test
     void nonPlanarQuadIsDetected() {
         // pull one top corner down: the top face is no longer planar
         CornerShape s = CornerShape.cube().move(Corner.UP_EAST_NORTH, Axis.Y, -8);

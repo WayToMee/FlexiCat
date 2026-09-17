@@ -14,6 +14,8 @@
   "key.flexicat.move_towards": "Move corner towards you",
   "key.flexicat.copy_shape": "Copy shape to tool",
   "key.flexicat.paste_shape": "Paste shape from tool",
+  "key.flexicat.mirror_shape": "Mirror shape (Ctrl: top/bottom)",
+  "key.flexicat.rotate_shape": "Rotate shape 90° (Ctrl: the other way)",
 
   "corner.flexicat.down_west_north": "Bottom north-west corner",
   "corner.flexicat.down_east_north": "Bottom north-east corner",
@@ -32,6 +34,8 @@
   "message.flexicat.shape_already_cube": "Already a cube",
   "message.flexicat.shape_copied": "Shape copied to the tool",
   "message.flexicat.shape_pasted": "Shape pasted",
+  "message.flexicat.shape_mirrored": "Shape mirrored",
+  "message.flexicat.shape_rotated": "Shape rotated",
   "message.flexicat.shape_same": "The block already has that shape",
   "message.flexicat.tool_empty": "The tool holds no shape yet — copy one first",
 
