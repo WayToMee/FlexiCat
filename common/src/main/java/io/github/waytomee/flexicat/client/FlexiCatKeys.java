@@ -11,7 +11,8 @@ import java.util.List;
  * Page Up / Page Down for away/towards (left, right, away and towards are relative to
  * the player's horizontal facing; up/down are world Y); Home copies the aimed block's
  * shape onto the tool, End pastes it; Insert mirrors the shape left ↔ right (Ctrl: top ↔
- * bottom), Delete rotates it a quarter turn clockwise (Ctrl: counter-clockwise).
+ * bottom), Delete rotates it a quarter turn clockwise (Ctrl: counter-clockwise);
+ * Backspace undoes the block's last edit step (Ctrl: redo).
  *
  * <p>WASD was deliberately not used: it would fight with walking around the block
  * while editing. Copy/paste avoid C/V for the same reason (chat, sneak rebinds) and
@@ -34,12 +35,14 @@ public final class FlexiCatKeys {
     public static final KeyMapping MIRROR_SHAPE = key("mirror_shape", GLFW.GLFW_KEY_INSERT);
     /** Rotate 90° clockwise (seen from above); with Ctrl/Shift: counter-clockwise. */
     public static final KeyMapping ROTATE_SHAPE = key("rotate_shape", GLFW.GLFW_KEY_DELETE);
+    /** Undo the block's last edit step; with Ctrl/Shift: redo. */
+    public static final KeyMapping UNDO_SHAPE = key("undo_shape", GLFW.GLFW_KEY_BACKSPACE);
 
     private static final List<KeyMapping> MOVES = List.of(
             MOVE_UP, MOVE_DOWN, MOVE_LEFT, MOVE_RIGHT, MOVE_AWAY, MOVE_TOWARDS);
     private static final List<KeyMapping> ALL = List.of(
             MOVE_UP, MOVE_DOWN, MOVE_LEFT, MOVE_RIGHT, MOVE_AWAY, MOVE_TOWARDS,
-            COPY_SHAPE, PASTE_SHAPE, MIRROR_SHAPE, ROTATE_SHAPE);
+            COPY_SHAPE, PASTE_SHAPE, MIRROR_SHAPE, ROTATE_SHAPE, UNDO_SHAPE);
 
     private FlexiCatKeys() {
     }

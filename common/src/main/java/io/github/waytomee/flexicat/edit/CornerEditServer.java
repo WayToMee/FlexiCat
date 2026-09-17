@@ -44,11 +44,12 @@ public final class CornerEditServer {
         }
         FlexiCatBlockEntity be = target.get();
         CornerShape next = be.shape().moveGroup(payload.corners(), payload.axis(), payload.delta());
-        return be.setShape(next);
+        return be.setShape(next, true); // a gesture step: undo merges a held key's repeats
     }
 
     /**
-     * Validate and apply a copy/paste intent. Must run on the server thread.
+     * Validate and apply a whole-shape intent (copy, paste, mirror, rotate, undo, redo).
+     * Must run on the server thread.
      *
      * @return {@code true} if something happened (shape copied, or shape changed)
      */
@@ -81,7 +82,21 @@ public final class CornerEditServer {
                     be.shape().mirror(payload.mirrorAxis()), "message.flexicat.shape_mirrored");
             case ROTATE -> applyWholeShape(player, payload.pos(), be,
                     be.shape().rotateY(payload.argument()), "message.flexicat.shape_rotated");
+            case UNDO -> history(player, payload.pos(), be, be.undoShape(),
+                    "message.flexicat.shape_undone", "message.flexicat.nothing_to_undo");
+            case REDO -> history(player, payload.pos(), be, be.redoShape(),
+                    "message.flexicat.shape_redone", "message.flexicat.nothing_to_redo");
         };
+    }
+
+    /** Feedback for an undo / redo that has already been applied (or found nothing to do). */
+    private static boolean history(ServerPlayer player, BlockPos pos, FlexiCatBlockEntity be,
+                                   boolean changed, String changedMessage, String nothingMessage) {
+        if (changed) {
+            ShapeFeedback.shapeChanged(player.serverLevel(), pos, be);
+        }
+        player.displayClientMessage(Component.translatable(changed ? changedMessage : nothingMessage), true);
+        return changed;
     }
 
     /** Replace the whole shape, with feedback; reports "already that shape" when nothing changed. */

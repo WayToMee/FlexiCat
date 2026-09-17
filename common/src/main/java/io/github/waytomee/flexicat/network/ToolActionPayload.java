@@ -11,7 +11,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 /**
  * Client → server intent for the corner tool's whole-shape actions on the block at
  * {@code pos}: copy its shape onto the tool, paste the tool's shape onto it, mirror it
- * across a cell axis, or rotate it about the vertical axis.
+ * across a cell axis, rotate it about the vertical axis, or undo / redo its last edit.
  *
  * <p>Like {@link CornerMovePayload} this carries no shape data — the server reads the
  * shape from the block or from the tool in the player's hand and applies the named
@@ -30,13 +30,17 @@ public record ToolActionPayload(BlockPos pos, int actionOrdinal, int argument) i
         /** Mirror the block's shape across the cell axis given by {@code argument}. */
         MIRROR,
         /** Rotate the block's shape {@code argument} × 90° clockwise about Y (seen from above). */
-        ROTATE;
+        ROTATE,
+        /** Take back the block's last shape-edit step (server-side history). */
+        UNDO,
+        /** Bring back the block's last undone step. */
+        REDO;
 
         private static final Action[] VALUES = values();
 
         boolean acceptsArgument(int argument) {
             return switch (this) {
-                case COPY, PASTE -> argument == 0;
+                case COPY, PASTE, UNDO, REDO -> argument == 0;
                 case MIRROR -> argument >= 0 && argument < Axis.values().length;
                 case ROTATE -> argument >= 1 && argument <= 3;
             };

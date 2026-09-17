@@ -16,6 +16,7 @@
   "key.flexicat.paste_shape": "Paste shape from tool",
   "key.flexicat.mirror_shape": "Mirror shape (Ctrl: top/bottom)",
   "key.flexicat.rotate_shape": "Rotate shape 90° (Ctrl: the other way)",
+  "key.flexicat.undo_shape": "Undo shape change (Ctrl: redo)",
 
   "corner.flexicat.down_west_north": "Bottom north-west corner",
   "corner.flexicat.down_east_north": "Bottom north-east corner",
@@ -37,6 +38,10 @@
   "message.flexicat.shape_mirrored": "Shape mirrored",
   "message.flexicat.shape_rotated": "Shape rotated",
   "message.flexicat.shape_same": "The block already has that shape",
+  "message.flexicat.shape_undone": "Shape change undone",
+  "message.flexicat.shape_redone": "Shape change redone",
+  "message.flexicat.nothing_to_undo": "Nothing to undo for this block",
+  "message.flexicat.nothing_to_redo": "Nothing to redo for this block",
   "message.flexicat.tool_empty": "The tool holds no shape yet — copy one first",
 
   "flexicat.configuration.title": "FlexiCat",

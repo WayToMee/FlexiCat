@@ -1,6 +1,7 @@
 package io.github.waytomee.flexicat.block;
 
 import io.github.waytomee.flexicat.codec.CornerShapeCodecs;
+import io.github.waytomee.flexicat.edit.ShapeHistory;
 import io.github.waytomee.flexicat.geometry.CornerShape;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
@@ -43,6 +44,8 @@ public class FlexiCatBlockEntity extends BlockEntity {
     private BlockState material;
     private VoxelShape voxelShape;
     private VoxelShape collisionShape;
+    /** Server-side undo / redo of shape changes; not saved, so it lives as long as the loaded block entity. */
+    private final ShapeHistory history = new ShapeHistory();
 
     public FlexiCatBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
         super(type, pos, state);
@@ -82,15 +85,60 @@ public class FlexiCatBlockEntity extends BlockEntity {
     }
 
     /**
-     * Replace the shape. Intended for the logical server; on a client it only
-     * updates the local copy (used when applying a sync packet).
+     * Replace the shape as a whole-shape action (its own undo step). Intended for the
+     * logical server; on a client it only updates the local copy.
      *
      * @return {@code true} if the shape actually changed
      */
     public boolean setShape(CornerShape newShape) {
+        return setShape(newShape, false);
+    }
+
+    /**
+     * Replace the shape. On the server the previous shape is recorded for undo;
+     * {@code gesture} marks a single corner-move step, which undo merges with the
+     * steps of the same held key (see {@link ShapeHistory}).
+     *
+     * @return {@code true} if the shape actually changed
+     */
+    public boolean setShape(CornerShape newShape, boolean gesture) {
         Objects.requireNonNull(newShape, "shape");
         if (newShape.equals(shape)) {
             return false;
+        }
+        Level level = getLevel();
+        if (level != null && !level.isClientSide()) {
+            history.record(shape, level.getGameTime(), gesture);
+        }
+        applyShape(newShape);
+        return true;
+    }
+
+    /**
+     * Server: take back the last edit step (a whole drag of a held key counts as one).
+     *
+     * @return {@code true} if there was something to undo
+     */
+    public boolean undoShape() {
+        Optional<CornerShape> previous = history.undo(shape);
+        previous.ifPresent(this::applyShape);
+        return previous.isPresent();
+    }
+
+    /**
+     * Server: bring back the last undone step.
+     *
+     * @return {@code true} if there was something to redo
+     */
+    public boolean redoShape() {
+        Optional<CornerShape> next = history.redo();
+        next.ifPresent(this::applyShape);
+        return next.isPresent();
+    }
+
+    private void applyShape(CornerShape newShape) {
+        if (newShape.equals(shape)) {
+            return;
         }
         boolean lightChanged = newShape.isCube() != shape.isCube();
         shape = newShape;
@@ -99,7 +147,6 @@ public class FlexiCatBlockEntity extends BlockEntity {
             relight();
         }
         sync();
-        return true;
     }
 
     /**

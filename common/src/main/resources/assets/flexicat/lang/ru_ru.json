@@ -16,6 +16,7 @@
   "key.flexicat.paste_shape": "Вставить форму из инструмента",
   "key.flexicat.mirror_shape": "Отразить форму (Ctrl: верх/низ)",
   "key.flexicat.rotate_shape": "Повернуть форму на 90° (Ctrl: в другую сторону)",
+  "key.flexicat.undo_shape": "Отменить изменение формы (Ctrl: вернуть)",
 
   "corner.flexicat.down_west_north": "Нижний северо-западный угол",
   "corner.flexicat.down_east_north": "Нижний северо-восточный угол",
@@ -37,6 +38,10 @@
   "message.flexicat.shape_mirrored": "Форма отражена",
   "message.flexicat.shape_rotated": "Форма повёрнута",
   "message.flexicat.shape_same": "У блока уже такая форма",
+  "message.flexicat.shape_undone": "Изменение формы отменено",
+  "message.flexicat.shape_redone": "Изменение формы возвращено",
+  "message.flexicat.nothing_to_undo": "У этого блока нечего отменять",
+  "message.flexicat.nothing_to_redo": "У этого блока нечего возвращать",
   "message.flexicat.tool_empty": "В инструменте ещё нет формы — сначала скопируйте её",
 
   "flexicat.configuration.title": "FlexiCat",

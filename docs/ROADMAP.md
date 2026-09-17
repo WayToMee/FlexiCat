@@ -26,5 +26,6 @@ Small stages, each reviewable on its own.
       HUD) with an in-game config screen, English + Russian strings for everything.
       Follow-up after in-game testing: whole-shape mirror / rotate keys (Insert / Delete),
       handle size default 1, fix for uneven brightness of blocks in one plane (relight on
-      shape change, real vertex normals).
+      shape change, real vertex normals), per-block undo / redo of shape edits (Backspace /
+      Ctrl + Backspace, a held-key drag is one step), crafting recipes, README usage guide.
 - [ ] **F.** Fabric module.

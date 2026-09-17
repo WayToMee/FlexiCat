@@ -74,6 +74,7 @@ public final class CornerEditClient {
     private static boolean pasteWasDown;
     private static boolean mirrorWasDown;
     private static boolean rotateWasDown;
+    private static boolean undoWasDown;
 
     private CornerEditClient() {
     }
@@ -159,6 +160,7 @@ public final class CornerEditClient {
             pasteWasDown = false;
             mirrorWasDown = false;
             rotateWasDown = false;
+            undoWasDown = false;
         }
         if (editing == null) {
             return;
@@ -228,7 +230,8 @@ public final class CornerEditClient {
      * Whole-shape keys fire once per press (edge-triggered); the target is the edited block
      * or the aimed one. Mirror flips left ↔ right as the player sees it, i.e. across the
      * horizontal axis perpendicular to the facing (Ctrl/Shift: top ↔ bottom); rotate turns
-     * a quarter clockwise seen from above (Ctrl/Shift: counter-clockwise).
+     * a quarter clockwise seen from above (Ctrl/Shift: counter-clockwise); undo takes back
+     * the block's last edit step on the server (Ctrl/Shift: redo).
      */
     private static void handleClipboardKeys(Minecraft mc, LocalPlayer player, ClientLevel level) {
         boolean copy = FlexiCatKeys.COPY_SHAPE.isDown();
@@ -248,6 +251,14 @@ public final class CornerEditClient {
         }
         mirrorWasDown = mirror;
         rotateWasDown = rotate;
+        boolean undo = FlexiCatKeys.UNDO_SHAPE.isDown();
+        if (undo && !undoWasDown) {
+            ToolActionPayload.Action action = isGroupModifierDown(mc)
+                    ? ToolActionPayload.Action.REDO : ToolActionPayload.Action.UNDO;
+            clipboardTarget(mc, level).ifPresent(pos -> LoaderHooks.sendToServer(
+                    ToolActionPayload.of(pos, action)));
+        }
+        undoWasDown = undo;
         if (copy && !copyWasDown) {
             clipboardTarget(mc, level).ifPresent(pos -> LoaderHooks.sendToServer(
                     ToolActionPayload.of(pos, ToolActionPayload.Action.COPY)));

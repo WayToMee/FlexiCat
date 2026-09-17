@@ -42,8 +42,13 @@ class ToolActionPayloadTest {
         assertFalse(new ToolActionPayload(BlockPos.ZERO, 2, 3).isValid(), "no fourth axis");
         assertTrue(new ToolActionPayload(BlockPos.ZERO, 3, 1).isValid());
         assertFalse(new ToolActionPayload(BlockPos.ZERO, 3, 0).isValid());
-        assertFalse(new ToolActionPayload(BlockPos.ZERO, 4, 0).isValid());
+        assertTrue(new ToolActionPayload(BlockPos.ZERO, 4, 0).isValid(), "undo");
+        assertFalse(new ToolActionPayload(BlockPos.ZERO, 4, 1).isValid(), "undo takes no argument");
+        assertTrue(new ToolActionPayload(BlockPos.ZERO, 5, 0).isValid(), "redo");
+        assertFalse(new ToolActionPayload(BlockPos.ZERO, 6, 0).isValid());
         assertFalse(new ToolActionPayload(BlockPos.ZERO, -1, 0).isValid());
+        assertEquals(ToolActionPayload.Action.UNDO,
+                ToolActionPayload.of(BlockPos.ZERO, ToolActionPayload.Action.UNDO).action());
     }
 
     @Test

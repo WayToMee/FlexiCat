@@ -209,7 +209,15 @@ after which it looks like that block — the copycat idea.
   Sent as `flexicat:tool_action` intents with an argument (mirror axis / quarter turns;
   protocol version `3`); the server applies the transform itself. Combined with copy/paste this
   gives the four orientations and the mirror image of a shape without moving corners one by one.
-- **Feedback.** Whole-shape changes (paste, mirror, rotate, sneak-reset) play the material's place sound and a
+- **Undo / redo.** **Backspace** takes back the block's last edit step, **Ctrl/Shift + Backspace**
+  brings it back; same target as copy/paste. The history is server-side and per block
+  (`edit/ShapeHistory`, held by the block entity, not saved — it lasts while the block entity is
+  loaded, 64 changes deep). A corner-move step is a *gesture*: consecutive gesture steps at most
+  15 ticks apart merge into one undo step, so one Backspace takes back a whole held-key drag,
+  not one 1/16 notch. Whole-shape actions (paste, mirror, rotate, reset) are always their own
+  step. A new edit discards the redo side. Sent as `flexicat:tool_action` `UNDO` / `REDO`
+  intents (protocol version `4`); the material is not part of the history.
+- **Feedback.** Whole-shape changes (paste, mirror, rotate, undo, redo, sneak-reset) play the material's place sound and a
   puff of that material's block particles at the shape's centre (`edit/ShapeFeedback`, server
   side). Single corner moves and handle clicks only play a quiet client-side UI click (rising
   pitch for "up", lower for "down"), so a held key does not rattle. Copy plays the item pickup
@@ -227,7 +235,7 @@ after which it looks like that block — the copycat idea.
 
 - Move keys. Stage 3 ships **arrow keys** (up/down = world Y, left/right = relative to the
   player's facing) plus **Page Up / Page Down** (away / towards), stage 7 adds **Home / End**
-  (copy / paste) and **Insert / Delete** (mirror / rotate), all rebindable in the vanilla controls screen under "FlexiCat". WASD was
+  (copy / paste), **Insert / Delete** (mirror / rotate) and **Backspace** (undo; Ctrl: redo), all rebindable in the vanilla controls screen under "FlexiCat". WASD was
   avoided because it conflicts with walking around the block while editing. Whether an
   axis-switch key is added is open.
 - A one-time explicit "snap corners to the neighbouring block's corners".
